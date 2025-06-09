@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import re  # ✅ 정규표현식 라이브러리
+import re
 
-# CSV 파일 불러오기 (CP949 인코딩)
-gender_df = pd.read_csv("people_gender.csv.csv", encoding="cp949")
+# ✅ GitHub raw 경로에서 데이터 불러오기
+gender_df = pd.read_csv(
+    "https://raw.githubusercontent.com/minseo3129/2025ongong/main/people_gender.csv.csv",
+    encoding="cp949"
+)
+
 
 # ▶ 행정구역 이름만 추출 ('서울특별시  (1100000000)' → '서울특별시')
 gender_df['행정구역명'] = gender_df['행정구역'].apply(lambda x: x.split('  ')[0])
