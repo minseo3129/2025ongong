@@ -41,19 +41,31 @@ start_date = end_date - timedelta(days=365)
 
 @st.cache_data(show_spinner=False)
 def load_data(tickers, start, end):
-    df = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=False)
+    data = yf.download(tickers, start=start, end=end, auto_adjust=False, progress=False)
 
-    if len(tickers) > 1:
-        # 복수 종목 선택 시 MultiIndex → 'Adj Close' 레벨 접근
-        if "Adj Close" not in df.columns.get_level_values(0):
-            raise ValueError("'Adj Close' 데이터가 없습니다.")
-        df = df["Adj Close"]
+    # 다중 종목: MultiIndex 처리
+    if isinstance(tickers, list) and len(tickers) > 1:
+        # 우선 'Adj Close' 또는 'Close' 레벨 확인
+        valid_field = None
+        for field in ["Adj Close", "Close"]:
+            if field in data.columns.get_level_values(0):
+                valid_field = field
+                break
+        if not valid_field:
+            raise ValueError("'Adj Close' 또는 'Close' 데이터가 없습니다.")
+        df = data[valid_field]
     else:
-        # 단일 종목 선택 시 일반 DataFrame
-        if "Adj Close" not in df.columns:
-            raise ValueError("'Adj Close' 데이터가 없습니다.")
-        df = df[["Adj Close"]]
-        df.columns = [tickers[0]]  # 단일 컬럼 이름 정렬
+        # 단일 종목: 일반 DataFrame
+        if isinstance(data, pd.Series):
+            raise ValueError("예상치 못한 데이터 형식입니다.")
+        if "Adj Close" in data.columns:
+            df = data[["Adj Close"]]
+        elif "Close" in data.columns:
+            df = data[["Close"]]
+            df.columns = ["Adj Close"]  # 일관성 유지
+        else:
+            raise ValueError("'Adj Close' 또는 'Close' 데이터가 없습니다.")
+        df.columns = [tickers[0]]  # 단일 종목 처리
 
     df.dropna(inplace=True)
     return df
@@ -66,8 +78,9 @@ try:
     st.subheader("📊 주가 추이")
     fig_price = go.Figure()
     for ticker in df_prices.columns:
-        fig_price.add_trace(go.Scatter(x=df_prices.index, y=df_prices[ticker],
-                                       mode='lines', name=TOP10_COMPANIES.get(ticker, ticker)))
+        fig_price.add_trace(go.Scatter(
+            x=df_prices.index, y=df_prices[ticker],
+            mode='lines', name=TOP10_COMPANIES.get(ticker, ticker)))
     fig_price.update_layout(title="주가 변화", xaxis_title="날짜", yaxis_title="가격 (USD)")
     st.plotly_chart(fig_price, use_container_width=True)
 
@@ -75,8 +88,9 @@ try:
     st.subheader("📈 누적 수익률")
     fig_return = go.Figure()
     for ticker in df_returns.columns:
-        fig_return.add_trace(go.Scatter(x=df_returns.index, y=df_returns[ticker],
-                                        mode='lines', name=TOP10_COMPANIES.get(ticker, ticker)))
+        fig_return.add_trace(go.Scatter(
+            x=df_returns.index, y=df_returns[ticker],
+            mode='lines', name=TOP10_COMPANIES.get(ticker, ticker)))
     fig_return.update_layout(title="누적 수익률 변화", xaxis_title="날짜", yaxis_title="누적 수익률")
     st.plotly_chart(fig_return, use_container_width=True)
 
