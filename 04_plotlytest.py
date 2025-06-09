@@ -3,11 +3,11 @@ import pandas as pd
 import plotly.express as px
 import re
 
-# ✅ GitHub raw 경로에서 데이터 불러오기
 gender_df = pd.read_csv(
-    "https://raw.githubusercontent.com/minseo3129/2025ongong/main/people_gender.csv.csv",
+    "https://raw.githubusercontent.com/minseo3129/2025ongong/main/people_gender.csv",
     encoding="cp949"
 )
+
 
 
 # ▶ 행정구역 이름만 추출 ('서울특별시  (1100000000)' → '서울특별시')
