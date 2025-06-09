@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re  # ✅ 정규표현식 라이브러리
 
 # CSV 파일 불러오기 (CP949 인코딩)
 gender_df = pd.read_csv("people_gender.csv.csv", encoding="cp949")
@@ -16,10 +17,10 @@ selected_region = st.selectbox("지역을 선택하세요", regions[1:])  # '전
 male_cols = [col for col in gender_df.columns if '남_' in col and '세' in col]
 female_cols = [col for col in gender_df.columns if '여_' in col and '세' in col]
 
-# 연령 숫자만 추출
+# ✅ 정규표현식으로 안전하게 연령 숫자 추출
 def extract_age(col_name):
-    age = col_name.split('_')[-1].replace('세', '').replace(' 이상', '').strip()
-    return 100 if '이상' in col_name or not age.isdigit() else int(age)
+    match = re.search(r'(\d+)', col_name)
+    return int(match.group(1)) if match else 100
 
 ages = [extract_age(col) for col in male_cols]
 
@@ -66,3 +67,4 @@ if fig:
     st.plotly_chart(fig)
 else:
     st.warning("해당 조건에 맞는 인구 데이터를 찾을 수 없습니다.")
+
