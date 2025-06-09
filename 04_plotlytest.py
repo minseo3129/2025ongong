@@ -29,7 +29,16 @@ def extract_age(col_name):
 ages = [extract_age(col) for col in male_cols]
 
 # ▶ 연령대 선택 위젯
-min_age, max_age = st.slider("표시할 연령대 범위 (단위: 세)", 0, 100, (0, 100))
+# 연령 숫자 추출 (중복 제거 + 정렬)
+ages = sorted(list(set([extract_age(col) for col in male_cols if extract_age(col) is not None])))
+
+# 슬라이더 (데이터 없으면 종료)
+if ages:
+    min_age, max_age = st.slider("📊 연령 범위를 선택하세요!", min(ages), max(ages), (min(ages), max(ages)))
+else:
+    st.error("연령 정보를 불러오지 못했습니다.")
+    st.stop()
+
 
 # ▶ 인구 피라미드 생성 함수
 def create_pyramid(region_name, age_min, age_max):
