@@ -41,9 +41,20 @@ start_date = end_date - timedelta(days=365)
 
 @st.cache_data(show_spinner=False)
 def load_data(tickers, start, end):
-    df = yf.download(tickers, start=start, end=end)["Adj Close"]
-    if isinstance(df, pd.Series):
-        df = df.to_frame()
+    df = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=False)
+
+    if len(tickers) > 1:
+        # 복수 종목 선택 시 MultiIndex → 'Adj Close' 레벨 접근
+        if "Adj Close" not in df.columns.get_level_values(0):
+            raise ValueError("'Adj Close' 데이터가 없습니다.")
+        df = df["Adj Close"]
+    else:
+        # 단일 종목 선택 시 일반 DataFrame
+        if "Adj Close" not in df.columns:
+            raise ValueError("'Adj Close' 데이터가 없습니다.")
+        df = df[["Adj Close"]]
+        df.columns = [tickers[0]]  # 단일 컬럼 이름 정렬
+
     df.dropna(inplace=True)
     return df
 
