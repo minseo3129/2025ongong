@@ -43,29 +43,16 @@ start_date = end_date - timedelta(days=365)
 def load_data(tickers, start, end):
     data = yf.download(tickers, start=start, end=end, auto_adjust=False, progress=False)
 
-    # 다중 종목: MultiIndex 처리
-    if isinstance(tickers, list) and len(tickers) > 1:
-        # 우선 'Adj Close' 또는 'Close' 레벨 확인
-        valid_field = None
-        for field in ["Adj Close", "Close"]:
-            if field in data.columns.get_level_values(0):
-                valid_field = field
-                break
-        if not valid_field:
-            raise ValueError("'Adj Close' 또는 'Close' 데이터가 없습니다.")
-        df = data[valid_field]
-    else:
-        # 단일 종목: 일반 DataFrame
-        if isinstance(data, pd.Series):
-            raise ValueError("예상치 못한 데이터 형식입니다.")
-        if "Adj Close" in data.columns:
-            df = data[["Adj Close"]]
-        elif "Close" in data.columns:
-            df = data[["Close"]]
-            df.columns = ["Adj Close"]  # 일관성 유지
-        else:
-            raise ValueError("'Adj Close' 또는 'Close' 데이터가 없습니다.")
-        df.columns = [tickers[0]]  # 단일 종목 처리
+    # 'Adj Close'가 존재하는지 확인
+    if "Adj Close" not in data.columns.get_level_values(0):
+        raise ValueError("'Adj Close' 데이터가 없습니다.")
+
+    df = data["Adj Close"]
+
+    # 단일 종목 처리: df가 Series로 반환될 수 있음
+    if isinstance(df, pd.Series):
+        df = df.to_frame()
+        df.columns = [tickers[0]]
 
     df.dropna(inplace=True)
     return df
@@ -96,3 +83,4 @@ try:
 
 except Exception as e:
     st.error(f"데이터를 불러오는 중 오류 발생: {e}")
+
