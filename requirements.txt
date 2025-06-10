@@ -1,14 +1,12 @@
-streamlit
 plotly
 streamlit==1.35.0
 pandas==2.2.2
 matplotlib==3.8.4
 networkx==3.3
-streamlit
-pandas
 matplotlib
 networkx
+streamlit
+scikit-learn
 pandas
 matplotlib
-scikit-learn
-streamlit
+joblib
