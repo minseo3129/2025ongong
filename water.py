@@ -1,61 +1,62 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import joblib
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
 
-# Load model and imputer
-model = joblib.load("water_model.pkl")
-imputer = joblib.load("water_imputer.pkl")
+# 앱 제목
+st.set_page_config(page_title="Water Potability Predictor", layout="centered")
+st.title("💧 수질 음용 가능성 예측기")
+st.write("📈 CSV 데이터를 기반으로 머신러닝으로 물이 음용 가능한지를 예측합니다.")
 
-# 페이지 설정
-st.set_page_config(page_title="음용수 예측 시스템", layout="centered")
-st.title("💧 물의 음용 가능성 예측 시스템")
-st.write("이 웹앱은 수질 데이터를 기반으로 해당 물이 음용 가능한지 예측합니다.")
+# 데이터 불러오기
+@st.cache_data
+def load_data():
+    df = pd.read_csv("water_potability.csv")
+    return df
 
-# 수질 지표 시각화 (탐색적 분석)
-st.subheader("📊 수질 지표 시각화")
+df = load_data()
 
-uploaded_file = st.file_uploader("water_potability.csv 파일을 업로드하세요", type=["csv"])
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.dataframe(df.head())
+# 결측값 처리
+imputer = SimpleImputer(strategy="mean")
+X = df.drop("Potability", axis=1)
+X_imputed = imputer.fit_transform(X)
+y = df["Potability"]
 
-    # 그래프 시각화
-    fig, ax = plt.subplots()
-    df["ph"].hist(ax=ax, bins=30)
-    ax.set_title("pH 분포")
-    ax.set_xlabel("pH")
-    ax.set_ylabel("빈도")
-    st.pyplot(fig)
+# 데이터 분할 및 학습
+X_train, X_test, y_train, y_test = train_test_split(X_imputed, y, test_size=0.2, random_state=42)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
 
-    fig2, ax2 = plt.subplots()
-    df.boxplot(column="Conductivity", by="Potability", ax=ax2)
-    ax2.set_title("전도도 vs 음용 가능 여부")
-    ax2.set_ylabel("Conductivity")
-    st.pyplot(fig2)
+# 정확도 표시
+acc = accuracy_score(y_test, model.predict(X_test))
+st.markdown(f"✅ **모델 정확도: {acc*100:.2f}%**")
+
+# 시각화
+st.subheader("📊 주요 특성 히스토그램")
+selected_col = st.selectbox("히스토그램으로 볼 항목을 선택하세요", df.columns[:-1])
+fig, ax = plt.subplots()
+df[selected_col].hist(bins=30, ax=ax)
+ax.set_title(f"{selected_col} 분포")
+st.pyplot(fig)
 
 # 사용자 입력
-st.subheader("🔍 수질 항목 직접 입력")
+st.subheader("🔍 직접 입력하여 예측하기")
 
-ph = st.number_input("pH (6.5~8.5 권장)", min_value=0.0, max_value=14.0, step=0.1)
-hardness = st.number_input("Hardness", min_value=0.0)
-solids = st.number_input("Total Dissolved Solids", min_value=0.0)
-chloramines = st.number_input("Chloramines", min_value=0.0)
-sulfate = st.number_input("Sulfate", min_value=0.0)
-conductivity = st.number_input("Conductivity", min_value=0.0)
-organic_carbon = st.number_input("Organic Carbon", min_value=0.0)
-trihalomethanes = st.number_input("Trihalomethanes", min_value=0.0)
-turbidity = st.number_input("Turbidity", min_value=0.0)
+user_input = {}
+for col in df.columns[:-1]:
+    user_input[col] = st.number_input(f"{col}", min_value=0.0, step=0.1)
 
+# 예측 버튼
 if st.button("예측하기"):
-    user_data = pd.DataFrame([[ph, hardness, solids, chloramines, sulfate,
-                               conductivity, organic_carbon, trihalomethanes, turbidity]],
-                             columns=["ph", "Hardness", "Solids", "Chloramines", "Sulfate",
-                                      "Conductivity", "Organic_carbon", "Trihalomethanes", "Turbidity"])
-    user_data_imputed = pd.DataFrame(imputer.transform(user_data), columns=user_data.columns)
-    prediction = model.predict(user_data_imputed)[0]
-    
+    input_df = pd.DataFrame([user_input])
+    input_imputed = imputer.transform(input_df)
+    prediction = model.predict(input_imputed)[0]
+    proba = model.predict_proba(input_imputed)[0][prediction]
+
     if prediction == 1:
-        st.success("✅ 이 물은 음용 가능합니다.")
+        st.success(f"✅ 이 물은 음용 가능합니다. (신뢰도: {proba*100:.2f}%)")
     else:
-        st.error("❌ 이 물은 음용에 적합하지 않습니다.")
+        st.error(f"❌ 이 물은 음용에 적합하지 않습니다. (신뢰도: {proba*100:.2f}%)")
