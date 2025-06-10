@@ -8,3 +8,7 @@ streamlit
 pandas
 matplotlib
 networkx
+pandas
+matplotlib
+scikit-learn
+streamlit
