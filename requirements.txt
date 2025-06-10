@@ -2,3 +2,8 @@ streamlit
 pandas
 scikit-learn
 matplotlib
+streamlit
+pandas
+scikit-learn
+matplotlib
+seaborn
