@@ -155,3 +155,4 @@ importance_df = pd.DataFrame({
 fig, ax = plt.subplots()
 sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
 st.pyplot(fig)
+ 
