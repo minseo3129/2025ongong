@@ -11,3 +11,11 @@ streamlit
 pandas
 scikit-learn
 matplotlib
+
+matplotlib
+seaborn
+scikit-learn
+pandas
+streamlit
+# 한글 폰트
+nanum-fonts
