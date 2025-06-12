@@ -16,6 +16,14 @@ plt.rcParams["axes.unicode_minus"] = False      # 마이너스 부호 깨짐 방
 plt.rcParams["figure.dpi"] = 120                # 해상도 높이기
 plt.rcParams["savefig.bbox"] = 'tight'          # 여백 없이 저장
 
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
+
+# ✅ 축 라벨 크기 및 정렬 설정
+ax.set_title("수질 항목별 중요도", fontsize=14)
+ax.tick_params(axis='y', labelsize=12)  # y축 글자 크기 키우기
+ax.set_xlabel("중요도", fontsize=12)
+ax.set_ylabel("")  # y축 제목 제거
 
 
 # 한글 폰트 설정
@@ -160,15 +168,17 @@ if st.button("📈 예측 실행"):
         else:
             st.warning(f"⚠ 음용 **불가능**합니다. (신뢰도: {prob*100:.2f}%)")
 
-fig, ax = plt.subplots(figsize=(8, 6))
+fig, ax = plt.subplots(figsize=(10, 8))  # ✅ 크기를 넉넉하게 키우기
 sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
 
-# ✅ 축 라벨 크기 및 정렬 설정
-ax.set_title("수질 항목별 중요도", fontsize=14)
-ax.tick_params(axis='y', labelsize=12)  # y축 글자 크기 키우기
-ax.set_xlabel("중요도", fontsize=12)
+# ✅ 폰트 크기 및 y축 간격 넓히기
+ax.set_title("수질 항목별 중요도", fontsize=16)
+ax.set_xlabel("중요도", fontsize=13)
 ax.set_ylabel("")  # y축 제목 제거
+ax.tick_params(axis='y', labelsize=13)  # y축 글자 키우기
 
+plt.tight_layout()  # ✅ 모든 글자 잘리지 않도록 자동 여백 조정
+st.pyplot(fig)
 
 # 변수 중요도 시각화
 st.subheader("📊 변수 중요도 (예측 모델 기반)")
