@@ -6,9 +6,31 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.impute import SimpleImputer
 
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import seaborn as sns
+
+# ✅ 글자 잘림 방지 설정
+plt.rcParams["font.family"] = "Malgun Gothic"   # 한글 폰트 설정
+plt.rcParams["axes.unicode_minus"] = False      # 마이너스 부호 깨짐 방지
+plt.rcParams["figure.dpi"] = 120                # 해상도 높이기
+plt.rcParams["savefig.bbox"] = 'tight'          # 여백 없이 저장
+
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
+
+# ✅ 축 라벨 크기 및 정렬 설정
+ax.set_title("수질 항목별 중요도", fontsize=14)
+ax.tick_params(axis='y', labelsize=12)  # y축 글자 크기 키우기
+ax.set_xlabel("중요도", fontsize=12)
+ax.set_ylabel("")  # y축 제목 제거
+
+
 # 한글 폰트 설정
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
+
+
 
 # 페이지 설정
 st.set_page_config(page_title="물의 음용 가능성 판단 시스템", layout="wide")
