@@ -10,6 +10,17 @@ from sklearn.impute import SimpleImputer
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
+font_candidates = ["Malgun Gothic", "NanumGothic", "AppleGothic", "DejaVu Sans"]
+available_fonts = [f.name for f in fm.fontManager.ttflist]
+
+for candidate in font_candidates:
+    if candidate in available_fonts:
+        plt.rcParams["font.family"] = candidate
+        break
+else:
+    plt.rcParams["font.family"] = "sans-serif"
+
+
 # 페이지 설정
 st.set_page_config(page_title="물의 음용 가능성 판단 시스템", layout="wide")
 st.title("💧 수질 기반 음용 가능성 예측 시스템")
