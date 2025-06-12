@@ -18,7 +18,16 @@ st.title("💧 수질 기반 음용 가능성 예측 시스템")
 df = pd.read_csv("water_potability.csv")
 features = df.columns[:-1]
 
+# 변수 중요도 시각화
+st.subheader("📊 변수 중요도 (예측 모델 기반)")
+importance_df = pd.DataFrame({
+    "항목": [feature_meta[f]["label"] for f in features],
+    "중요도": model.feature_importances_
+}).sort_values(by="중요도", ascending=False)
 
+fig, ax = plt.subplots()
+sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
+st.pyplot(fig)
 
 # 변수 정보 및 WHO 기준
 feature_meta = {
