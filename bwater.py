@@ -15,6 +15,13 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Malgun Gothic"  # 또는 "NanumGothic"
 plt.rcParams["axes.unicode_minus"] = False
 
+# 상단에 반드시 위치
+import matplotlib.font_manager as fm
+font_path = "C:/Windows/Fonts/malgun.ttf"
+font_name = fm.FontProperties(fname=font_path).get_name()
+plt.rcParams["font.family"] = font_name
+plt.rcParams["axes.unicode_minus"] = False
+
 
 
 # ✅ 한글 폰트 및 그래프 설정
@@ -124,21 +131,22 @@ if st.button("📈 예측 실행"):
         else:
             st.warning(f"⚠ 이 물은 **음용 불가능합니다**. (신뢰도: {prob*100:.2f}%)")
 
-# ✅ 변수 중요도 시각화
+# 중요도 시각화
 st.subheader("📊 변수 중요도 (예측 모델 기반)")
 importance_df = pd.DataFrame({
     "항목": [feature_meta[f]["label"] for f in features],
     "중요도": model.feature_importances_
 }).sort_values(by="중요도", ascending=False)
 
-fig, ax = plt.subplots(figsize=(10, 8))
+fig, ax = plt.subplots(figsize=(10, 6))
 sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
-ax.set_title("수질 항목별 중요도", fontsize=16)
-ax.set_xlabel("중요도", fontsize=13)
-ax.set_ylabel("")
-ax.tick_params(axis='y', labelsize=13)
+ax.set_title("수질 항목별 중요도", fontsize=15)
+ax.tick_params(axis='y', labelsize=12)
+ax.set_xlabel("중요도", fontsize=12)
+ax.set_ylabel("")  # y축 이름 제거
 plt.tight_layout()
 st.pyplot(fig)
+
 
 # ✅ 상관관계 히트맵 시각화
 st.subheader("🔗 수질 항목 간 상관관계 분석")
