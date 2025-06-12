@@ -5,15 +5,16 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import seaborn as sns
+import os
+
 from sklearn.impute import SimpleImputer
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Malgun Gothic"  # 또는 "NanumGothic"
 plt.rcParams["axes.unicode_minus"] = False
 
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import seaborn as sns
-import os
 
 # 한글 폰트 수동 등록 (윈도우 기준 'Malgun Gothic')
 font_path = "C:/Windows/Fonts/malgun.ttf"  # 시스템에 설치된 폰트 경로
