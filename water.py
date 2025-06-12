@@ -14,7 +14,7 @@ plt.rcParams["axes.unicode_minus"] = False
 
 # 페이지 설정
 st.set_page_config(page_title="물의 음용 가능성 판단 시스템", layout="wide")
-st.title("💧 수질 기반 음용 가능성 예측 시스템")
+st.title("💧 트리 기반 물의 음용 가능 여부 예측")
 
 # 내장 데이터 로드
 df = pd.read_csv("water_potability.csv")
