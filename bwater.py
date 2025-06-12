@@ -16,12 +16,6 @@ plt.rcParams["font.family"] = "Malgun Gothic"  # 또는 "NanumGothic"
 plt.rcParams["axes.unicode_minus"] = False
 
 
-# 한글 폰트 수동 등록 (윈도우 기준 'Malgun Gothic')
-font_path = "C:/Windows/Fonts/malgun.ttf"  # 시스템에 설치된 폰트 경로
-font_name = fm.FontProperties(fname=font_path).get_name()
-plt.rcParams["font.family"] = font_name
-plt.rcParams["axes.unicode_minus"] = False
-
 
 # ✅ 한글 폰트 및 그래프 설정
 plt.rcParams["font.family"] = "Malgun Gothic"
