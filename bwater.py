@@ -15,15 +15,6 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Malgun Gothic"  # 또는 "NanumGothic"
 plt.rcParams["axes.unicode_minus"] = False
 
-# 상단에 반드시 위치
-import matplotlib.font_manager as fm
-font_path = "C:/Windows/Fonts/malgun.ttf"
-font_name = fm.FontProperties(fname=font_path).get_name()
-plt.rcParams["font.family"] = font_name
-plt.rcParams["axes.unicode_minus"] = False
-
-
-
 # ✅ 한글 폰트 및 그래프 설정
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
