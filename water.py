@@ -156,3 +156,37 @@ importance_df = pd.DataFrame({
 fig, ax = plt.subplots()
 sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
 st.pyplot(fig)
+
+
+# ✅ 상관관계 히트맵 시각화
+st.subheader("🔗 수질 항목 간 상관관계 분석")
+
+# 상관행렬 계산
+corr_matrix = pd.DataFrame(X_imputed, columns=features).corr()
+
+# 히트맵 그리기
+fig_corr, ax = plt.subplots(figsize=(9, 7))
+sns.heatmap(
+    corr_matrix,
+    annot=True, fmt=".2f",
+    cmap="coolwarm",
+    cbar=True,
+    square=True,
+    linewidths=0.5,
+    annot_kws={"size": 9}
+)
+ax.set_title("💡 수질 항목 간 상관관계 히트맵", fontsize=15)
+plt.xticks(rotation=45, ha='right')
+plt.yticks(rotation=0)
+plt.tight_layout()
+
+st.pyplot(fig_corr)
+
+# 간단한 해설 추가
+st.markdown("""
+🔍 **해설**  
+- **상관계수 1.00**: 완전 양의 상관 (예: 자기 자신과의 관계)  
+- **0.0 부근**: 거의 관계 없음  
+- **음수(-)**: 한 값이 커질수록 다른 값이 작아지는 경향  
+- 대부분 항목 간 상관성이 낮음(0.1 이하) → 예측 변수로서 서로 독립적인 정보 제공 가능성 ↑  
+""")
