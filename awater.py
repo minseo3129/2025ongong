@@ -71,7 +71,7 @@ feature_meta = {
     "Organic_carbon": {
         "label": "유기 탄소",
         "unit": "mg/L",
-        "desc": "🧪 WHO 권장: 최대 2",
+        "desc": "🧪 WHO 권장: 최대 2\n- 유기 탄소는 물 속 유기물의 총량을 나타냅니다.\n- 유기 탄소가 높을수록 소독 시 **발암성 부산물(THMs)** 생성 가능성이 큽니다.",
         "max": 2,
         "cause": "염소와 반응 시 발암물질(THMs) 생성",
         "solution": "오존 처리, 유기물 여과"
@@ -79,7 +79,7 @@ feature_meta = {
     "Trihalomethanes": {
         "label": "트리할로메탄",
         "unit": "ppb",
-        "desc": "🧪 WHO 권장: 최대 80",
+        "desc": "🧪 WHO 권장: 최대 80\n- 염소 소독 부산물로 장기 노출 시 간·신장 손상 가능",
         "max": 80,
         "cause": "장기 노출 시 암 유발 위험",
         "solution": "UV 소독 또는 유기물 제거"
@@ -87,7 +87,7 @@ feature_meta = {
     "Turbidity": {
         "label": "탁도",
         "unit": "NTU",
-        "desc": "🧪 WHO 권장: 최대 5",
+        "desc": "🧪 WHO 권장: 최대 5\n- 탁도가 높으면 미생물 번식 위험이 커집니다.",
         "max": 5,
         "cause": "부유물은 병원성 미생물 서식 위험",
         "solution": "응집, 침전, 모래 여과"
