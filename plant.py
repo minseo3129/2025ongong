@@ -10,12 +10,10 @@ st.set_page_config(page_title="식물 생장 분산 분석", layout="wide")
 st.title("🌱 같은 조건, 다른 성장")
 st.markdown("**식물 생장 결과의 분산 분석을 통한 스마트팜의 불안정성 해소 방안 탐색**")
 
-# 📊 데이터 불러오기 (사전 저장된 CSV 사용)
-@st.cache_data
-def load_data():
-    return pd.read_csv("plant_growth_data.csv")  # 사전 위치에 파일 저장
 
-df = load_data()
+# 내장 데이터 로드
+df = pd.read_csv("plant_growth_data.csv")
+features = df.columns[:-1]
 
 # 🔧 전처리
 df['Condition_Group'] = df['Soil_Type'] + "_" + df['Water_Frequency'] + "_" + df['Fertilizer_Type']
