@@ -2,8 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import matplotlib.pyplot as plt
 from mlxtend.frequent_patterns import apriori, association_rules
 from sklearn.neighbors import KNeighborsClassifier
+
+# 한글 폰트 설정 (matplotlib 필요)
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
 
 st.set_page_config(layout="wide")
 st.title("🌱 스마트팜 생장 데이터 분석 및 조건 기반 작물 재배 매뉴얼")
