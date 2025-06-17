@@ -5,10 +5,11 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 st.title("🌿 스마트팜 생장 실패 분석 대시보드")
 
+# 📂 데이터 불러오기
 st.sidebar.header("📂 데이터 불러오기")
-df = pd.read_csv("https://raw.githubusercontent.com/사용자아이디/저장소명/main/plant_growth_data.csv")  # 경로 수정 필요
+df = pd.read_csv("https://raw.githubusercontent.com/사용자아이디/저장소명/main/plant_growth_data.csv")  # 👈 실제 경로로 수정 필요
 
-# 전처리: 실패율 컬럼 생성
+# 전처리: 생장 실패율 컬럼 생성
 df["Failure"] = 1 - df["Growth_Milestone"]
 
 # 📊 1. 성공 vs 실패군 박스플롯
