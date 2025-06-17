@@ -1,18 +1,31 @@
+# 한글 폰트 설정
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
+
+# 내장 데이터 로드
+df = pd.read_csv("plant_growth_data.csv")
+features = df.columns[:-1]
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
+from mlxtend.frequent_patterns import apriori, association_rules
+from sklearn.neighbors import KNeighborsClassifier
 
 st.set_page_config(layout="wide")
-st.title("🌿 스마트팜 생장 실패 분석 대시보드")
+st.title("🌱 스마트팜 생장 데이터 분석 및 조건 기반 작물 재배 매뉴얼")
 
-# 📂 데이터 불러오기
-st.sidebar.header("📂 데이터 불러오기")
-df = pd.read_csv("https://raw.githubusercontent.com/사용자아이디/저장소명/main/plant_growth_data.csv")  # 👈 실제 경로로 수정 필요
+# 한글 폰트 설정
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
 
-# 전처리: 생장 실패율 컬럼 생성
-df["Failure"] = 1 - df["Growth_Milestone"]
+# 내장 데이터 로드
+df = pd.read_csv("plant_growth_data.csv")
+features = df.columns[:-1]
 
-# 📊 1. 성공 vs 실패군 박스플롯
+
+# 📊 1. 박스플롯
 st.subheader("📊 1. 생장 성공/실패군의 주요 변수 분포 (Boxplot)")
 for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
     fig = px.box(df, x="Failure", y=feature, color="Failure",
@@ -20,7 +33,7 @@ for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
                  labels={"Failure": "성공(0)/실패(1)"})
     st.plotly_chart(fig, use_container_width=True)
 
-# 📊 2. 조건 조합별 생장 실패율 히트맵
+# 📊 2. 조건 조합별 실패율 히트맵
 st.subheader("📊 2. 조건 조합별 생장 실패율 히트맵")
 combo_df = df.groupby(["Soil_Type", "Water_Frequency", "Fertilizer_Type"])["Failure"].mean().reset_index()
 pivot_df = combo_df.pivot_table(index="Soil_Type", columns=["Water_Frequency", "Fertilizer_Type"], values="Failure")
@@ -45,4 +58,44 @@ fig = px.density_heatmap(cross_df, x="Temp_bin", y="Humidity_bin", z="Failure",
                          title="온도 & 습도 조합별 생장 실패율")
 st.plotly_chart(fig, use_container_width=True)
 
-st.success("✅ 분석 완료. 위 시각화를 기반으로 리스크 기반 작물 재배 전략 수립 가능")
+# 📊 5. 연관규칙 기반 위험 조건 탐색
+st.subheader("📊 5. 연관규칙 기반 위험 조합 탐색")
+rule_df = df.copy()
+rule_df = pd.get_dummies(rule_df[["Soil_Type", "Water_Frequency", "Fertilizer_Type"]])
+rule_df["Failure"] = df["Failure"]
+frequent_items = apriori(rule_df, min_support=0.1, use_colnames=True)
+rules = association_rules(frequent_items, metric="lift", min_threshold=1)
+risk_rules = rules[rules['consequents'].astype(str).str.contains('Failure')]
+st.write("위험 조합 규칙:")
+st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']])
+
+# 📊 6. 사용자 입력 기반 실패율 예측
+st.subheader("📊 6. 사용자 조건 기반 실패 리스크 예측")
+soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
+water = st.selectbox("물 주기", df["Water_Frequency"].unique())
+fert = st.selectbox("비료 유형", df["Fertilizer_Type"].unique())
+sun = st.slider("햇빛 노출 시간", float(df["Sunlight_Hours"].min()), float(df["Sunlight_Hours"].max()), 6.0)
+temp = st.slider("온도", float(df["Temperature"].min()), float(df["Temperature"].max()), 25.0)
+hum = st.slider("습도", float(df["Humidity"].min()), float(df["Humidity"].max()), 60.0)
+
+input_data = pd.DataFrame([[soil, water, fert, sun, temp, hum]],
+                          columns=["Soil_Type", "Water_Frequency", "Fertilizer_Type", "Sunlight_Hours", "Temperature", "Humidity"])
+all_data = pd.concat([df, input_data], ignore_index=True)
+all_encoded = pd.get_dummies(all_data.drop("Failure", axis=1, errors='ignore'))
+input_vector = all_encoded.iloc[[-1]]
+data_vector = all_encoded.iloc[:-1]
+labels = df["Failure"]
+
+model = KNeighborsClassifier(n_neighbors=5)
+model.fit(data_vector, labels)
+pred_prob = model.predict_proba(input_vector)[0][1]
+
+st.markdown(f"### 🔍 예측된 실패 확률: **{round(pred_prob * 100, 1)}%**")
+if pred_prob >= 0.6:
+    st.error("⚠️ 높은 실패 위험. 차광, 냉방, 환기 필요")
+elif pred_prob >= 0.3:
+    st.warning("⚠️ 중간 위험. 조건 조정 고려")
+else:
+    st.success("✅ 양호한 조건")
+
+st.success("✅ 전체 분석 및 사용자 예측 완료")
