@@ -3,3 +3,9 @@ pandas
 scikit-learn
 matplotlib
 seaborn
+streamlit
+pandas
+plotly
+matplotlib
+scikit-learn
+mlxtend
