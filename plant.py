@@ -6,18 +6,18 @@ import matplotlib.pyplot as plt
 from mlxtend.frequent_patterns import apriori, association_rules
 from sklearn.neighbors import KNeighborsClassifier
 
-# 한글 폰트 설정 (matplotlib 필요)
+# 한글 포트 설정 (matplotlib 필요)
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
 st.set_page_config(layout="wide")
-st.title("🌱 스마트팜 생장 데이터 분석 및 조건 기반 작물 재배 매뉴얼")
+st.title("🌱 실양방 생장 데이터 분석 및 조건 기반 작물 재배 매뉴얼")
 
-# 데이터 로드 (로컬 파일로 수정)
+# 데이터 로드 (로컬 파일으로 수정)
 df = pd.read_csv("plant_growth_data.csv")
 df["Failure"] = 1 - df["Growth_Milestone"]
 
-# 📊 1. 박스플롯
+# 📊 1. 박스플로트
 st.subheader("📊 1. 생장 성공/실패군의 주요 변수 분포 (Boxplot)")
 for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
     fig = px.box(df, x="Failure", y=feature, color="Failure",
@@ -31,7 +31,7 @@ combo_df = df.groupby(["Soil_Type", "Water_Frequency", "Fertilizer_Type"])["Fail
 pivot_df = combo_df.pivot_table(index="Soil_Type", columns=["Water_Frequency", "Fertilizer_Type"], values="Failure")
 st.dataframe((pivot_df * 100).round(1), use_container_width=True)
 
-# 📊 3. 연속형 변수 임계값 분석
+# 📊 3. 연속형 변수 임계값 범위에 따른 생장 실패율
 st.subheader("📊 3. 연속형 변수별 임계값 구간에 따른 생장 실패율")
 for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]:
     df[f"{feature}_bin"] = pd.cut(df[feature], bins)
@@ -50,8 +50,8 @@ fig = px.density_heatmap(cross_df, x="Temp_bin", y="Humidity_bin", z="Failure",
                          title="온도 & 습도 조합별 생장 실패율")
 st.plotly_chart(fig, use_container_width=True)
 
-# 📊 5. 연관규칙 기반 위험 조건 탐색
-st.subheader("📊 5. 연관규칙 기반 위험 조합 탐색")
+# 📊 5. 연관규칙 기반 위험 조건 탐산
+st.subheader("📊 5. 연관규칙 기반 위험 조합 탐산")
 rule_df = df.copy()
 rule_df = pd.get_dummies(rule_df[["Soil_Type", "Water_Frequency", "Fertilizer_Type"]])
 rule_df["Failure"] = df["Failure"]
@@ -66,7 +66,7 @@ st.subheader("📊 6. 사용자 조건 기반 실패 리스크 예측")
 soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
 water = st.selectbox("물 주기", df["Water_Frequency"].unique())
 fert = st.selectbox("비료 유형", df["Fertilizer_Type"].unique())
-sun = st.slider("햇빛 노출 시간", float(df["Sunlight_Hours"].min()), float(df["Sunlight_Hours"].max()), 6.0)
+sun = st.slider("헤빨 노출 시간", float(df["Sunlight_Hours"].min()), float(df["Sunlight_Hours"].max()), 6.0)
 temp = st.slider("온도", float(df["Temperature"].min()), float(df["Temperature"].max()), 25.0)
 hum = st.slider("습도", float(df["Humidity"].min()), float(df["Humidity"].max()), 60.0)
 
@@ -91,3 +91,4 @@ else:
     st.success("✅ 양호한 조건")
 
 st.success("✅ 전체 분석 및 사용자 예측 완료")
+
