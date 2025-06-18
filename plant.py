@@ -158,6 +158,35 @@ temp = st.slider("온도", float(df["Temperature"].min()), float(df["Temperature
 hum = st.slider("습도", float(df["Humidity"].min()), float(df["Humidity"].max()), 60.0)
 
 input_data = pd.DataFrame([[soil, water, fert, sun, temp, hum]],
+    columns=["Soil_Type", "Water_Frequency", "Fertilizer_Type",
+             "Sunlight_Hours", "Temperature", "Humidity"])
+
+all_data = pd.concat([df, input_data], ignore_index=True)
+all_encoded = pd.get_dummies(all_data.drop("Failure", axis=1, errors='ignore'))
+
+input_vector = all_encoded.iloc[[-1]]
+data_vector = all_encoded.iloc[:-1]
+
+input_vector = input_vector.reindex(columns=data_vector.columns, fill_value=0)
+input_vector = input_vector.fillna(0)  # ✅ NaN 제거
+
+labels = df["Failure"]
+model = KNeighborsClassifier(n_neighbors=5)
+model.fit(data_vector, labels)
+pred_prob = model.predict_proba(input_vector)[0][1]
+
+
+# 📊 6. 사용자 조건 기반 실패율 예측
+st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
+
+soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
+water = st.selectbox("물 주기", df["Water_Frequency"].unique())
+fert = st.selectbox("비료 유형", df["Fertilizer_Type"].unique())
+sun = st.slider("햇빛 노출 시간", float(df["Sunlight_Hours"].min()), float(df["Sunlight_Hours"].max()), 6.0)
+temp = st.slider("온도", float(df["Temperature"].min()), float(df["Temperature"].max()), 25.0)
+hum = st.slider("습도", float(df["Humidity"].min()), float(df["Humidity"].max()), 60.0)
+
+input_data = pd.DataFrame([[soil, water, fert, sun, temp, hum]],
                           columns=["Soil_Type", "Water_Frequency", "Fertilizer_Type",
                                    "Sunlight_Hours", "Temperature", "Humidity"])
 all_data = pd.concat([df, input_data], ignore_index=True)
