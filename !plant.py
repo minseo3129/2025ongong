@@ -36,6 +36,67 @@ for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
                  title=f"{name_map[feature]}에 따른 생장 성공/실패 분포",
                  labels={"Failure": "성공(0)/실패(1)", feature: name_map[feature]})
     st.plotly_chart(fig, use_container_width=True)
+    
+
+
+
+# 3. 임계값별 실패율 분석
+st.subheader("3. 연속형 변수별 임계값 구간에 따른 생장 실패율")
+for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]:
+    df[f"{feature}_bin"] = pd.cut(df[feature], bins)
+    bin_df = df.groupby(f"{feature}_bin")["Failure"].mean().reset_index()
+    bin_df[f"{feature}_bin"] = bin_df[f"{feature}_bin"].astype(str)
+    fig = px.bar(bin_df, x=f"{feature}_bin", y="Failure",
+                 title=f"{name_map[feature]} 구간별 생장 실패율",
+                 labels={"Failure": "실패율", f"{feature}_bin": f"{name_map[feature]} 구간"})
+    st.plotly_chart(fig, use_container_width=True)
+
+from sklearn.metrics import mutual_info_score
+
+st.subheader("3. 연속형 변수별 임계값 분석")
+
+for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
+    st.markdown(f"#### 📈 {name_map[feature]} 기준 임계값 분석")
+
+    best_threshold = None
+    max_diff = 0
+    best_group_info = None
+
+    # 가능한 임계값 후보를 순차적으로 시도
+    for threshold in np.linspace(df[feature].min(), df[feature].max(), 30):
+        group_low = df[df[feature] <= threshold]["Failure"]
+        group_high = df[df[feature] > threshold]["Failure"]
+
+        # 그룹이 너무 작으면 건너뜀
+        if len(group_low) < 10 or len(group_high) < 10:
+            continue
+
+        diff = abs(group_low.mean() - group_high.mean())
+
+        if diff > max_diff:
+            max_diff = diff
+            best_threshold = threshold
+            best_group_info = (group_low.mean(), group_high.mean())
+
+    if best_threshold is not None:
+        st.markdown(f"- 🔍 최적 임계값: **{best_threshold:.2f}**")
+        st.markdown(f"- 하위 그룹 실패율: `{best_group_info[0]:.2f}`")
+        st.markdown(f"- 상위 그룹 실패율: `{best_group_info[1]:.2f}`")
+        st.markdown(f"- 실패율 차이: `{max_diff:.2f}`")
+
+        # 시각화
+        df["임계기준"] = np.where(df[feature] <= best_threshold, f"{name_map[feature]} ↓", f"{name_map[feature]} ↑")
+        fig = px.box(df, x="임계기준", y="Failure", color="임계기준",
+                     title=f"{name_map[feature]} 임계값({best_threshold:.2f})에 따른 실패율 분포",
+                     labels={"Failure": "실패율"})
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning(f"'{name_map[feature]}'에 대해 유의미한 임계값을 찾지 못했습니다~")
+
+
+
+
+
 
 
 
