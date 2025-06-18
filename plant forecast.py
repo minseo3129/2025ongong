@@ -51,13 +51,28 @@ for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)
 
 # 📊 4. 온도 & 습도 상호작용 분석
 st.subheader("📊 4. 변수 간 상호작용 분석: 온도 & 습도 조합별 실패율")
+
+# 구간화
 df["Temp_bin"] = pd.cut(df["Temperature"], bins=[0, 20, 25, 30, 35, 40])
 df["Humidity_bin"] = pd.cut(df["Humidity"], bins=[0, 40, 50, 60, 70, 100])
+
+# 그룹 평균
 cross_df = df.groupby(["Temp_bin", "Humidity_bin"])["Failure"].mean().reset_index()
-fig = px.density_heatmap(cross_df, x="Temp_bin", y="Humidity_bin", z="Failure",
+
+# 👉 문자열로 변환 필수!
+cross_df["Temp_bin"] = cross_df["Temp_bin"].astype(str)
+cross_df["Humidity_bin"] = cross_df["Humidity_bin"].astype(str)
+
+# 시각화
+fig = px.density_heatmap(cross_df, 
+                         x="Temp_bin", 
+                         y="Humidity_bin", 
+                         z="Failure",
                          color_continuous_scale="Reds",
                          title="온도 & 습도 조합별 생장 실패율")
+
 st.plotly_chart(fig, use_container_width=True)
+
 
 # 📊 5. 연관규칙 기반 위험 조건 탐색
 st.subheader("📊 5. 연관규칙 기반 위험 조합 탐색")
