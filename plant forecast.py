@@ -16,6 +16,9 @@ st.title("🌱 스마트팜 생장 데이터 분석 및 조건 기반 작물 재
 # GitHub에서 다운로드하여 현재 폴더에 저장한 경우
 df = pd.read_csv("plant_growth_data.csv")
 features = df.columns[:-1]
+# 반드시 있어야 함
+df["Failure"] = 1 - df["Growth_Milestone"]
+
 
 
 # 📊 1. 박스플롯
