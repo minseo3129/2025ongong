@@ -38,15 +38,15 @@ st.subheader("2. 조건 조합별 생장 실패율 히트맵")
 
 # 한글로 표시될 열 이름 설정
 df_rename = df.rename(columns={
-    "Soil_Type": "토양",
+    "Soil_Type": ".",
     "Water_Frequency": "물",
     "Fertilizer_Type": "비료",
     "Failure": "실패율"
 })
 
 # 집계
-combo_df = df_rename.groupby(["토양", "물", "비료"])["실패율"].mean().reset_index()
-pivot_df = combo_df.pivot_table(index="토양", columns=["물", "비료"], values="실패율")
+combo_df = df_rename.groupby([".", "물", "비료"])["실패율"].mean().reset_index()
+pivot_df = combo_df.pivot_table(index=".", columns=["물", "비료"], values="실패율")
 
 # 데이터프레임 출력
 st.dataframe((pivot_df * 100).round(1), use_container_width=True)
