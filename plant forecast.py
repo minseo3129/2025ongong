@@ -40,7 +40,12 @@ st.subheader("📊 3. 연속형 변수별 임계값 구간에 따른 생장 실�
 for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]:
     df[f"{feature}_bin"] = pd.cut(df[feature], bins)
     bin_df = df.groupby(f"{feature}_bin")["Failure"].mean().reset_index()
-    fig = px.bar(bin_df, x=f"{feature}_bin", y="Failure", title=f"{feature} 구간별 생장 실패율",
+    
+    # 👉 문자열로 변환 필수!
+    bin_df[f"{feature}_bin"] = bin_df[f"{feature}_bin"].astype(str)
+
+    fig = px.bar(bin_df, x=f"{feature}_bin", y="Failure", 
+                 title=f"{feature} 구간별 생장 실패율",
                  labels={"Failure": "실패율"})
     st.plotly_chart(fig, use_container_width=True)
 
