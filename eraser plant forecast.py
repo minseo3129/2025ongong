@@ -105,25 +105,24 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
 
 from scipy.stats import f_oneway
 
-st.subheader("3. 연속형 변수별 임계값 구간에 따른 생장 실패율 및 분산분석")
-
-for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]:
-    # 구간화
+for i, (feature, bins) in enumerate([("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]):
     df[f"{feature}_bin"] = pd.cut(df[feature], bins)
-    
-    # 시각화용 막대그래프
     bin_df = df.groupby(f"{feature}_bin")["Failure"].mean().reset_index()
     bin_df[f"{feature}_bin"] = bin_df[f"{feature}_bin"].astype(str)
+
     fig = px.bar(bin_df, x=f"{feature}_bin", y="Failure",
                  title=f"{name_map[feature]} 구간별 생장 실패율",
                  labels={"Failure": "실패율", f"{feature}_bin": f"{name_map[feature]} 구간"})
-    st.plotly_chart(fig, use_container_width=True)
+
+    # ✅ key 추가로 중복 방지
+    st.plotly_chart(fig, use_container_width=True, key=f"bar_{feature}_{i}")
 
     # 분산분석
+    from scipy.stats import f_oneway
     groups = [df[df[f"{feature}_bin"] == bin_group]["Failure"] for bin_group in df[f"{feature}_bin"].unique()]
     anova_result = f_oneway(*groups)
 
-    st.markdown(f"**🔬 {name_map[feature]}에 따른 실패율 분산분석 결과 (ANOVA):**")
+    st.markdown(f"**🔬 {name_map[feature]}에 따른 실패율 분산분석 결과:**")
     st.markdown(f"- F값: `{anova_result.statistic:.3f}`")
     st.markdown(f"- p값: `{anova_result.pvalue:.4f}`")
 
