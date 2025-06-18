@@ -87,7 +87,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# 📌 한글 폰트 설정 (윈도우 기준)
+# 📌 한글 폰트 설정
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
@@ -99,7 +99,7 @@ st.title("📊 3. 연속형 변수별 임계 구간에 따른 생장 실패율 �
 df = pd.read_csv("plant_growth_data.csv")
 df["Failure"] = 1 - df["Growth_Milestone"]
 
-# ✅ 구간 설정 및 변수 매핑
+# ✅ 임계 구간 설정
 bin_settings = {
     "Sunlight_Hours": [4, 5, 6, 7, 8, 9, 10, 11, 12],
     "Temperature": [15, 20, 22, 25, 28, 30, 32, 35],
@@ -111,21 +111,21 @@ name_map = {
     "Humidity": "💧 습도"
 }
 
-# ✅ 시각화
+# ✅ 시각화 - 선 그래프
 for var in bin_settings:
     df[f"{var}_bin"] = pd.cut(df[var], bins=bin_settings[var])
     grouped = df.groupby(f"{var}_bin")["Failure"].mean().reset_index()
     grouped[f"{var}_bin"] = grouped[f"{var}_bin"].astype(str)
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    sns.lineplot(data=grouped, x=f"{var}_bin", y="Failure", marker='o', color='tomato', ax=ax)
+    sns.lineplot(data=grouped, x=f"{var}_bin", y="Failure", marker='o', linewidth=2.5, ax=ax, color="tomato")
 
     ax.set_title(f"{name_map[var]}에 따른 생장 실패율 변화", fontsize=15)
     ax.set_ylabel("실패율", fontsize=12)
     ax.set_xlabel(f"{name_map[var]} 구간", fontsize=12)
     plt.xticks(rotation=45)
 
-    # 📍 주요 해석 주석
+    # ✅ 주석 추가
     if var == "Sunlight_Hours":
         ax.annotate("✅ 실패율 낮음", xy=(1, grouped["Failure"].iloc[1]), xytext=(0.5, 0.4),
                     arrowprops=dict(facecolor='green', arrowstyle='->'), fontsize=10)
