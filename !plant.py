@@ -78,9 +78,28 @@ st.pyplot(fig)
 
 
 
-# 📊 3. 연속형 변수별 임계 구간 분석
-st.subheader("3. 연속형 변수별 임계 구간에 따른 생장 실패율")
 
+
+
+
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 📌 한글 폰트 설정 (윈도우 기준)
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
+
+# ✅ 페이지 설정
+st.set_page_config(layout="wide")
+st.title("📊 3. 연속형 변수별 임계 구간에 따른 생장 실패율 분석")
+
+# ✅ 데이터 불러오기
+df = pd.read_csv("plant_growth_data.csv")
+df["Failure"] = 1 - df["Growth_Milestone"]
+
+# ✅ 구간 설정 및 변수 매핑
 bin_settings = {
     "Sunlight_Hours": [4, 5, 6, 7, 8, 9, 10, 11, 12],
     "Temperature": [15, 20, 22, 25, 28, 30, 32, 35],
@@ -92,6 +111,7 @@ name_map = {
     "Humidity": "💧 습도"
 }
 
+# ✅ 시각화
 for var in bin_settings:
     df[f"{var}_bin"] = pd.cut(df[var], bins=bin_settings[var])
     grouped = df.groupby(f"{var}_bin")["Failure"].mean().reset_index()
@@ -100,30 +120,31 @@ for var in bin_settings:
     fig, ax = plt.subplots(figsize=(10, 4))
     sns.lineplot(data=grouped, x=f"{var}_bin", y="Failure", marker='o', color='tomato', ax=ax)
 
-    ax.set_title(f"{name_map[var]}에 따른 실패율 변화", fontsize=14)
-    ax.set_ylabel("실패율")
-    ax.set_xlabel(f"{name_map[var]} 구간")
-    ax.tick_params(axis='x', rotation=45)
+    ax.set_title(f"{name_map[var]}에 따른 생장 실패율 변화", fontsize=15)
+    ax.set_ylabel("실패율", fontsize=12)
+    ax.set_xlabel(f"{name_map[var]} 구간", fontsize=12)
+    plt.xticks(rotation=45)
 
-    # 주요 해석 주석
+    # 📍 주요 해석 주석
     if var == "Sunlight_Hours":
-        ax.annotate("✅ 실패율 낮음", xy=(0, grouped["Failure"].iloc[0]), xytext=(0, 0.4),
+        ax.annotate("✅ 실패율 낮음", xy=(1, grouped["Failure"].iloc[1]), xytext=(0.5, 0.4),
                     arrowprops=dict(facecolor='green', arrowstyle='->'), fontsize=10)
-        ax.annotate("⚠ 실패율 증가", xy=(5, grouped["Failure"].iloc[5]), xytext=(4.5, 0.6),
+        ax.annotate("⚠ 실패율 증가", xy=(6, grouped["Failure"].iloc[6]), xytext=(5.5, 0.6),
                     arrowprops=dict(facecolor='red', arrowstyle='->'), fontsize=10)
+
     elif var == "Temperature":
-        ax.annotate("✅ 최적 구간", xy=(1, grouped["Failure"].iloc[1]), xytext=(0.5, 0.3),
+        ax.annotate("✅ 최적 온도", xy=(1, grouped["Failure"].iloc[1]), xytext=(0.5, 0.3),
                     arrowprops=dict(facecolor='green', arrowstyle='->'), fontsize=10)
-        ax.annotate("⚠ 고온 실패율 급등", xy=(5, grouped["Failure"].iloc[5]), xytext=(4.5, 0.7),
+        ax.annotate("⚠ 고온 위험", xy=(5, grouped["Failure"].iloc[5]), xytext=(4.5, 0.7),
                     arrowprops=dict(facecolor='red', arrowstyle='->'), fontsize=10)
+
     elif var == "Humidity":
-        ax.annotate("✅ 50~60% 최적", xy=(2, grouped["Failure"].iloc[2]), xytext=(1.5, 0.4),
+        ax.annotate("✅ 적절 습도", xy=(2, grouped["Failure"].iloc[2]), xytext=(1.5, 0.4),
                     arrowprops=dict(facecolor='green', arrowstyle='->'), fontsize=10)
-        ax.annotate("⚠ 고습 실패율 급등", xy=(5, grouped["Failure"].iloc[5]), xytext=(4.5, 0.7),
+        ax.annotate("⚠ 고습 실패율 급등", xy=(5, grouped["Failure"].iloc[5]), xytext=(4.5, 0.65),
                     arrowprops=dict(facecolor='red', arrowstyle='->'), fontsize=10)
 
     st.pyplot(fig)
-
 
 
 
