@@ -95,6 +95,9 @@ plt.rcParams["axes.unicode_minus"] = False
 st.set_page_config(layout="wide")
 st.title("📊 3. 연속형 변수별 임계 구간에 따른 생장 실패율 분석")
 
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
+
 # ✅ 데이터 불러오기
 df = pd.read_csv("plant_growth_data.csv")
 df["Failure"] = 1 - df["Growth_Milestone"]
