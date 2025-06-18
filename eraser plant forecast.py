@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 
 st.subheader("2. 조건 조합별 생장 실패율 히트맵")
 
-# 한글 표시용 열 이름 재설정
+# 한글 컬럼명으로 변경
 df_rename = df.rename(columns={
     "Soil_Type": "토양",
     "Water_Frequency": "물주기",
@@ -46,21 +46,22 @@ df_rename = df.rename(columns={
     "Failure": "실패율"
 })
 
-# 조건 조합별 평균 실패율 계산
+# 조합별 평균 실패율 계산
 combo_df = df_rename.groupby(["토양", "물주기", "비료"])["실패율"].mean().reset_index()
-combo_df["물비료"] = combo_df["물주기"] + " × " + combo_df["비료"]  # 조합 문자열 생성
+combo_df["물비료"] = combo_df["물주기"] + " × " + combo_df["비료"]
 
-# 피벗 테이블 구성
+# 피벗 테이블 생성
 pivot_df = combo_df.pivot(index="토양", columns="물비료", values="실패율")
 
-# 시각화 (파란 계열 히트맵)
-fig, ax = plt.subplots(figsize=(12, 6))
-sns.heatmap(pivot_df, annot=True, fmt=".2f", cmap="Blues", cbar_kws={"label": "실패율"}, ax=ax)
+# 히트맵 시각화
+fig, ax = plt.subplots(figsize=(10, 10))  # 정사각형에 맞게 figsize 수정
+sns.heatmap(pivot_df, annot=True, fmt=".2f", cmap="Blues",
+            cbar_kws={"label": "실패율"}, square=True, ax=ax)
+
 plt.title("토양 유형, 물 주기, 비료 조합별 생장 실패율")
 plt.ylabel("토양 유형")
 plt.xlabel("물주기 × 비료 조합")
 st.pyplot(fig)
-
 
 
 # 3. 임계값별 실패율 분석
