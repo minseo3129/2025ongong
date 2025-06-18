@@ -331,7 +331,7 @@ else:
 
 
 
-
+st.subheader("7. 사용자 조건 기반 실패 리스크 예측")
 # ✅ 사용자 입력 조건 조합 생성
 user_group = f"{soil} | {water} | {fert}"
 
