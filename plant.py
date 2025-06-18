@@ -146,36 +146,6 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
     'antecedents': '조건 조합', 'support': '지지도', 'confidence': '신뢰도', 'lift': '향상도'
 }))
 
-
-# 📊 6. 사용자 조건 기반 실패율 예측
-st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
-
-soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
-water = st.selectbox("물 주기", df["Water_Frequency"].unique())
-fert = st.selectbox("비료 유형", df["Fertilizer_Type"].unique())
-sun = st.slider("햇빛 노출 시간", float(df["Sunlight_Hours"].min()), float(df["Sunlight_Hours"].max()), 6.0)
-temp = st.slider("온도", float(df["Temperature"].min()), float(df["Temperature"].max()), 25.0)
-hum = st.slider("습도", float(df["Humidity"].min()), float(df["Humidity"].max()), 60.0)
-
-input_data = pd.DataFrame([[soil, water, fert, sun, temp, hum]],
-    columns=["Soil_Type", "Water_Frequency", "Fertilizer_Type",
-             "Sunlight_Hours", "Temperature", "Humidity"])
-
-all_data = pd.concat([df, input_data], ignore_index=True)
-all_encoded = pd.get_dummies(all_data.drop("Failure", axis=1, errors='ignore'))
-
-input_vector = all_encoded.iloc[[-1]]
-data_vector = all_encoded.iloc[:-1]
-
-input_vector = input_vector.reindex(columns=data_vector.columns, fill_value=0)
-input_vector = input_vector.fillna(0)  # ✅ NaN 제거
-
-labels = df["Failure"]
-model = KNeighborsClassifier(n_neighbors=5)
-model.fit(data_vector, labels)
-pred_prob = model.predict_proba(input_vector)[0][1]
-
-
 # 📊 6. 사용자 조건 기반 실패율 예측
 st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
 
@@ -195,6 +165,9 @@ input_vector = all_encoded.iloc[[-1]]
 data_vector = all_encoded.iloc[:-1]
 input_vector = input_vector.reindex(columns=data_vector.columns, fill_value=0)
 
+# ✅ NaN 제거 추가 (오류 해결 핵심)
+input_vector = input_vector.fillna(0)
+
 labels = df["Failure"]
 model = KNeighborsClassifier(n_neighbors=5)
 model.fit(data_vector, labels)
@@ -206,7 +179,7 @@ st.markdown(f"### 🔍 예측된 실패 확률: **{round(pred_prob * 100, 1)}%**
 # 🔧 조건조합 문자열
 user_group = f"{soil} | {water} | {fert}"
 
-# 📌 기존 분산 분석 데이터프레임 재계산 (필요 시 최상단에서 캐싱 가능)
+# 📌 기존 분산 분석 데이터프레임 재계산
 group_stats = df.copy()
 group_stats["조건조합"] = group_stats["Soil_Type"] + " | " + group_stats["Water_Frequency"] + " | " + group_stats["Fertilizer_Type"]
 group_stats = group_stats.groupby("조건조합")["Growth_Milestone"].agg(['mean', 'var', 'std', 'count']).reset_index()
