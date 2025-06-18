@@ -228,6 +228,26 @@ st.markdown("""
 - 🌱 **20~25°C & 50~60%** 조합 → **가장 낮은 실패율**  
   → 최적의 생장 조건으로 판단됨
 """)
+
+
+# 조건 그룹 생성
+df["Condition"] = df["Soil_Type"] + "_" + df["Water_Frequency"] + "_" + df["Fertilizer_Type"]
+
+# 조건별 생장 결과 분산 계산
+group_var = df.groupby("Condition")["Growth_Milestone"].var().reset_index()
+group_var.columns = ["조건", "생장결과 분산"]
+
+# 상위 분산 조건 확인
+top_var = group_var.sort_values(by="생장결과 분산", ascending=False).head(5)
+st.subheader("📌 동일 조건 내 생장결과 분산이 큰 조건 Top 5")
+st.dataframe(top_var)
+
+
+
+
+
+
+
 # 📊 6. 사용자 조건 기반 실패율 예측
 st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
 soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
