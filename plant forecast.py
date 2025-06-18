@@ -100,6 +100,9 @@ all_data = pd.concat([df, input_data], ignore_index=True)
 all_encoded = pd.get_dummies(all_data.drop("Failure", axis=1, errors='ignore'))
 input_vector = all_encoded.iloc[[-1]]
 data_vector = all_encoded.iloc[:-1]
+
+# 🔧 열 정렬 보정
+input_vector = input_vector.reindex(columns=data_vector.columns, fill_value=0)
 labels = df["Failure"]
 
 model = KNeighborsClassifier(n_neighbors=5)
