@@ -245,6 +245,56 @@ st.dataframe(top_var)
 
 
 
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 📌 페이지 설정
+st.set_page_config(layout="wide")
+st.subheader("2. 조건별 생장 결과의 분산 분석")
+
+# ✅ 데이터 로드
+df = pd.read_csv("plant_growth_data.csv")
+
+# ✅ 조건 그룹 생성
+df["조건조합"] = df["Soil_Type"] + " | " + df["Water_Frequency"] + " | " + df["Fertilizer_Type"]
+
+# ✅ 그룹별 통계 계산
+group_stats = df.groupby("조건조합")["Growth_Milestone"].agg(['mean', 'var', 'std', 'count']).reset_index()
+group_stats = group_stats.rename(columns={
+    '조건조합': '조건 조합',
+    'mean': '평균 생장값',
+    'var': '분산',
+    'std': '표준편차',
+    'count': '샘플 수'
+})
+
+# ✅ 샘플 수가 충분한 조건만 필터링 (예: 3개 이상)
+filtered = group_stats[group_stats['샘플 수'] >= 3].sort_values(by='분산', ascending=False)
+
+# ✅ 표 형태로 출력
+st.markdown("### 🔍 분산값 기준 상위 불안정 조건 그룹")
+st.dataframe(filtered.head(7), use_container_width=True)
+
+# ✅ 상위 그룹 시각화
+st.markdown("### 📊 상위 분산 조건 그룹별 생장값 분포")
+top_conditions = filtered.head(5)['조건 조합'].tolist()
+subset = df[df["조건조합"].isin(top_conditions)]
+
+fig, ax = plt.subplots(figsize=(12, 5))
+sns.boxplot(data=subset, x="조건조합", y="Growth_Milestone", palette="Set2", ax=ax)
+ax.set_title("상위 분산 조건 그룹의 생장값 분포", fontsize=14)
+ax.set_xlabel("조건 조합", fontsize=12)
+ax.set_ylabel("Growth_Milestone (생장 도달률)", fontsize=12)
+plt.xticks(rotation=45)
+st.pyplot(fig)
+
+
+
+
+
+
 
 
 
