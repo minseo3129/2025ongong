@@ -48,11 +48,42 @@ for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
 
 
 
-# 📊 2. 조건 조합별 생장 실패율 히트맵
-st.subheader("2. 조건 조합별 생장 실패율 히트맵")
-combo_df = df.groupby(["Soil_Type", "Water_Frequency", "Fertilizer_Type"])["Failure"].mean().reset_index()
-pivot_df = combo_df.pivot_table(index="Soil_Type", columns=["Water_Frequency", "Fertilizer_Type"], values="Failure")
-st.dataframe((pivot_df * 100).round(1), use_container_width=True)
+st.subheader("3. 조건 조합별 생장 실패율 히트맵")
+
+# 한글 컬럼명으로 변경
+df_rename = df.rename(columns={
+    "Soil_Type": "토양",
+    "Water_Frequency": "물주기",
+    "Fertilizer_Type": "비료",
+    "Failure": "실패율"
+})
+
+# 조합별 평균 실패율 계산
+combo_df = df_rename.groupby(["토양", "물주기", "비료"])["실패율"].mean().reset_index()
+combo_df["물비료"] = combo_df["물주기"] + " × " + combo_df["비료"]
+
+# 피벗 테이블 생성
+pivot_df = combo_df.pivot(index="토양", columns="물비료", values="실패율")
+
+# 히트맵 시각화
+fig, ax = plt.subplots(figsize=(10, 10))  # 정사각형에 맞게 figsize 수정
+sns.heatmap(pivot_df, annot=True, fmt=".2f", cmap="Blues",
+            cbar_kws={"label": "실패율"}, square=True, ax=ax)
+
+plt.title("토양 유형, 물 주기, 비료 조합별 생장 실패율")
+plt.ylabel("토양 유형")
+plt.xlabel("물주기 × 비료 조합")
+st.pyplot(fig)
+
+
+
+
+
+
+
+
+
+
 
 # 3. 연속형 변수별 임계 구간 분석
 st.subheader("3. 연속형 변수별 임계 구간에 따른 생장 실패율")
