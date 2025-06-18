@@ -33,6 +33,53 @@ for feature in name_map:
                  title=f"{name_map[feature]}에 따른 생장 성공/실패 분포",
                  labels={"Failure": "성공(0)/실패(1)", feature: name_map[feature]})
     st.plotly_chart(fig, use_container_width=True)
+    
+
+
+
+
+
+
+
+# 📊 2. 조건별 생장 결과의 분산 분석
+st.subheader("2. 조건별 생장 결과의 분산 분석")
+
+# 조건조합 컬럼 생성
+df["조건조합"] = df["Soil_Type"] + " | " + df["Water_Frequency"] + " | " + df["Fertilizer_Type"]
+
+# 조건별 통계량 계산
+group_stats = df.groupby("조건조합")["Growth_Milestone"].agg(['mean', 'var', 'std', 'count']).reset_index()
+group_stats.columns = ['조건 조합', '평균 생장값', '분산', '표준편차', '샘플 수']
+
+# 샘플 수 3개 이상 조건만 필터링
+filtered = group_stats[group_stats['샘플 수'] >= 3].sort_values(by='분산', ascending=False)
+
+# 📋 상위 7개 조건 데이터프레임 표시
+st.markdown("### 🔍 분산값 기준 상위 7개 불안정 조건 그룹")
+st.dataframe(filtered.head(7), use_container_width=True)
+
+# 📈 상위 조건들에 대한 생장률 분포 박스플롯
+st.markdown("### 📊 상위 분산 조건 그룹별 생장값 분포")
+top_conditions = filtered.head(7)['조건 조합'].tolist()
+subset = df[df["조건조합"].isin(top_conditions)]
+
+fig, ax = plt.subplots(figsize=(14, 6))
+sns.boxplot(data=subset, x="조건조합", y="Growth_Milestone", palette="Blues", ax=ax)
+ax.set_title("상위 분산 조건 그룹의 생장값 분포 (Top 7)", fontsize=15)
+ax.set_xlabel("조건 조합", fontsize=12)
+ax.set_ylabel("Growth_Milestone (생장률)", fontsize=12)
+plt.xticks(rotation=45)
+st.pyplot(fig)
+
+
+
+
+
+
+
+
+
+
 
 # 📊 2. 조건별 생장 결과의 분산 분석
 st.subheader("2. 조건별 생장 결과의 분산 분석")
