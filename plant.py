@@ -146,8 +146,10 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
     'antecedents': '조건 조합', 'support': '지지도', 'confidence': '신뢰도', 'lift': '향상도'
 }))
 
+
 # 📊 6. 사용자 조건 기반 실패율 예측
 st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
+
 soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
 water = st.selectbox("물 주기", df["Water_Frequency"].unique())
 fert = st.selectbox("비료 유형", df["Fertilizer_Type"].unique())
@@ -169,10 +171,47 @@ model = KNeighborsClassifier(n_neighbors=5)
 model.fit(data_vector, labels)
 pred_prob = model.predict_proba(input_vector)[0][1]
 
+# ✅ 조건 조합 기반 신뢰도 정보 추가
 st.markdown(f"### 🔍 예측된 실패 확률: **{round(pred_prob * 100, 1)}%**")
-if pred_prob >= 0.6:
-    st.error("⚠️ 높은 실패 위험. 차광, 냉방, 환기 필요")
-elif pred_prob >= 0.3:
-    st.warning("⚠️ 중간 위험. 조건 조정 고려")
+
+# 🔧 조건조합 문자열
+user_group = f"{soil} | {water} | {fert}"
+
+# 📌 기존 분산 분석 데이터프레임 재계산 (필요 시 최상단에서 캐싱 가능)
+group_stats = df.copy()
+group_stats["조건조합"] = group_stats["Soil_Type"] + " | " + group_stats["Water_Frequency"] + " | " + group_stats["Fertilizer_Type"]
+group_stats = group_stats.groupby("조건조합")["Growth_Milestone"].agg(['mean', 'var', 'std', 'count']).reset_index()
+group_stats = group_stats.rename(columns={
+    '조건조합': '조건 조합',
+    'mean': '평균 생장값',
+    'var': '분산',
+    'std': '표준편차',
+    'count': '샘플 수'
+})
+
+# 📊 사용자 조건조합에 해당하는 표준편차 조회
+uncertainty_info = group_stats[group_stats["조건 조합"] == user_group]
+if not uncertainty_info.empty:
+    std_val = uncertainty_info["표준편차"].values[0]
+    st.markdown(f"📉 해당 조건의 생장 결과 **표준편차**: `{std_val:.3f}`")
+
+    # 🔔 신뢰도 수준에 따른 경고
+    high_thresh = group_stats["표준편차"].quantile(0.8)
+    low_thresh = group_stats["표준편차"].quantile(0.2)
+
+    if std_val > high_thresh:
+        st.warning("⚠ **예측 신뢰도 낮음**: 동일 조건 내 결과의 편차가 큽니다. 생장 결과가 불안정할 수 있습니다.")
+    elif std_val < low_thresh:
+        st.success("✅ **안정된 조건**: 동일 조건 내 결과 일관성이 높습니다.")
+    else:
+        st.info("ℹ **평균 수준의 변동성**을 가진 조건입니다.")
 else:
-    st.success("✅ 양호한 조건")
+    st.info("🔎 해당 조건 조합에 대한 충분한 통계 데이터가 없어 신뢰도 판단이 어렵습니다.")
+
+# ✅ 시각적 경고 메시지 종합
+if pred_prob >= 0.6:
+    st.error("🔥 실패 확률이 높습니다. 차광, 냉방, 환기 등 관리 강화 필요")
+elif pred_prob >= 0.3:
+    st.warning("🌤 중간 수준의 실패 위험. 조건 조정 고려")
+else:
+    st.success("🌱 조건이 양호합니다. 안정적인 생장이 기대됩니다.")
