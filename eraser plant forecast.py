@@ -11,7 +11,7 @@ plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
 st.set_page_config(layout="wide")
-st.title("🌱 스마트팜 생장 데이터 분석 및 조건 기반 작물 재배 매뉴얼")
+st.title(" 식물 생장 분산 분석을 통한 스마트팜의 리스크 기반 작물관리 전략 : 🌱30129 김민서")
 
 # 데이터 로드
 df = pd.read_csv("plant_growth_data.csv")
@@ -29,7 +29,7 @@ name_map = {
 }
 
 # 📊 1. 박스플롯
-st.subheader("📊 1. 생장 성공/실패군의 주요 변수 분포 (Boxplot)")
+st.subheader("1. 생장 성공/실패군의 주요 변수 분포 (Boxplot)")
 for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
     fig = px.box(df, x="Failure", y=feature, color="Failure",
                  title=f"{name_map[feature]}에 따른 생장 성공/실패 분포",
@@ -37,13 +37,13 @@ for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
     st.plotly_chart(fig, use_container_width=True)
 
 # 📊 2. 조건 조합별 실패율 히트맵
-st.subheader("📊 2. 조건 조합별 생장 실패율 히트맵")
+st.subheader("2. 조건 조합별 생장 실패율 히트맵")
 combo_df = df.groupby(["Soil_Type", "Water_Frequency", "Fertilizer_Type"])["Failure"].mean().reset_index()
 pivot_df = combo_df.pivot_table(index="Soil_Type", columns=["Water_Frequency", "Fertilizer_Type"], values="Failure")
 st.dataframe((pivot_df * 100).round(1), use_container_width=True)
 
 # 📊 3. 연속형 변수 임계값 분석
-st.subheader("📊 3. 연속형 변수별 임계값 구간에 따른 생장 실패율")
+st.subheader("3. 연속형 변수별 임계값 구간에 따른 생장 실패율")
 for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]:
     df[f"{feature}_bin"] = pd.cut(df[feature], bins)
     bin_df = df.groupby(f"{feature}_bin")["Failure"].mean().reset_index()
@@ -54,7 +54,7 @@ for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)
     st.plotly_chart(fig, use_container_width=True)
 
 # 📊 4. 변수 간 상호작용 분석
-st.subheader("📊 4. 변수 간 상호작용 분석: 온도 & 습도 조합별 실패율")
+st.subheader("4. 변수 간 상호작용 분석: 온도 & 습도 조합별 실패율")
 df["Temp_bin"] = pd.cut(df["Temperature"], bins=[0, 20, 25, 30, 35, 40])
 df["Humidity_bin"] = pd.cut(df["Humidity"], bins=[0, 40, 50, 60, 70, 100])
 cross_df = df.groupby(["Temp_bin", "Humidity_bin"])["Failure"].mean().reset_index()
@@ -68,7 +68,7 @@ fig = px.density_heatmap(cross_df,
 st.plotly_chart(fig, use_container_width=True)
 
 # 📊 5. 연관규칙 기반 위험 조건 탐색
-st.subheader("📊 5. 연관규칙 기반 위험 조합 탐색")
+st.subheader(" 5. 연관규칙 기반 위험 조합 탐색")
 rule_df = df.copy()
 rule_df = pd.get_dummies(rule_df[["Soil_Type", "Water_Frequency", "Fertilizer_Type"]])
 rule_df["Failure"] = df["Failure"]
@@ -81,7 +81,7 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
 }))
 
 # 📊 6. 사용자 입력 기반 실패율 예측
-st.subheader("📊 6. 사용자 조건 기반 실패 리스크 예측")
+st.subheader(" 6. 사용자 조건 기반 실패 리스크 예측")
 soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
 water = st.selectbox("물 주기", df["Water_Frequency"].unique())
 fert = st.selectbox("비료 유형", df["Fertilizer_Type"].unique())
