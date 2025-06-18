@@ -325,4 +325,41 @@ elif pred_prob >= 0.3:
 else:
     st.success("✅ 양호한 조건")
 
-st.success("✅ 전체 분석 및 사용자 예측 완료")
+
+
+
+
+
+
+
+# ✅ 사용자 입력 조건 조합 생성
+user_group = f"{soil} | {water} | {fert}"
+
+# ✅ 분산 분석 데이터프레임(group_stats) 재사용
+group_stats = df.groupby("조건조합")["Growth_Milestone"].agg(['mean', 'var', 'std', 'count']).reset_index()
+group_stats = group_stats.rename(columns={
+    '조건조합': '조건 조합',
+    'mean': '평균 생장값',
+    'var': '분산',
+    'std': '표준편차',
+    'count': '샘플 수'
+})
+
+# ✅ 해당 조건의 분산값 가져오기
+uncertainty_info = group_stats[group_stats["조건 조합"] == user_group]
+
+if not uncertainty_info.empty:
+    std_val = uncertainty_info["표준편차"].values[0]
+
+    st.markdown(f"📉 해당 조건의 생장 결과 **표준편차**: `{std_val:.3f}`")
+
+    # ✅ 신뢰도에 따른 메시지 제공
+    if std_val > group_stats["표준편차"].quantile(0.8):
+        st.warning("⚠ 예측 신뢰도 낮음: 동일 조건 내 결과의 편차가 큽니다. 관측 결과가 불안정할 수 있습니다.")
+    elif std_val < group_stats["표준편차"].quantile(0.2):
+        st.success("✅ 안정된 조건: 예측 신뢰도 높음 (동일 조건 내 결과 일관성 높음)")
+    else:
+        st.info("ℹ 평균 수준의 변동성 조건입니다.")
+else:
+    st.info("해당 조건 조합에 대한 충분한 분산 데이터가 없습니다.")
+
