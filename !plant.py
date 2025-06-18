@@ -86,21 +86,16 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import matplotlib.font_manager as fm
 
-# ✅ 한글 폰트 설정
 plt.rcParams["axes.unicode_minus"] = False
 plt.rcParams["font.family"] = "Malgun Gothic"
 
-# ✅ Streamlit 설정
 st.set_page_config(layout="wide")
 st.title("📊 3. 연속형 변수별 임계 구간에 따른 생장 실패율 분석")
 
-# ✅ 데이터 불러오기
 df = pd.read_csv("plant_growth_data.csv")
 df["Failure"] = 1 - df["Growth_Milestone"]
 
-# ✅ 변수별 구간 및 명칭
 bin_settings = {
     "Sunlight_Hours": [4, 5, 6, 7, 8, 9, 10, 11, 12],
     "Temperature": [15, 20, 22, 25, 28, 30, 32, 35],
@@ -112,51 +107,46 @@ name_map = {
     "Humidity": "💧 습도"
 }
 
-# ✅ 시각화: 선 그래프 + 강조 점
 for var in bin_settings:
     df[f"{var}_bin"] = pd.cut(df[var], bins=bin_settings[var])
     grouped = df.groupby(f"{var}_bin")["Failure"].mean().reset_index()
     grouped[f"{var}_bin"] = grouped[f"{var}_bin"].astype(str)
 
-    fig, ax = plt.subplots(figsize=(10, 4))
-    sns.lineplot(data=grouped, x=f"{var}_bin", y="Failure",
-                 marker='o', linewidth=2.5, ax=ax, color="steelblue")
+    x_labels = grouped[f"{var}_bin"].tolist()
+    x_pos = list(range(len(x_labels)))
+    y_values = grouped["Failure"].tolist()
 
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(x_pos, y_values, marker='o', color='steelblue', linewidth=2.5)
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(x_labels, rotation=45)
     ax.set_title(f"{name_map[var]}에 따른 생장 실패율 변화", fontsize=15)
     ax.set_ylabel("실패율", fontsize=12)
     ax.set_xlabel(f"{name_map[var]} 구간", fontsize=12)
-    plt.xticks(rotation=45)
 
-    # ✅ 강조 지점 - 큰 점으로 표시
+    # 강조 점
     if var == "Sunlight_Hours":
-        ax.scatter(x=grouped[f"{var}_bin"].iloc[1], y=grouped["Failure"].iloc[1], s=150, color="green", zorder=5)
-        ax.text(x=grouped[f"{var}_bin"].iloc[1], y=grouped["Failure"].iloc[1]+0.02, 
-                s="✅ 실패율 낮음", color="green", ha="center", fontsize=10)
+        ax.scatter(x_pos[1], y_values[1], s=150, color="green", zorder=5)
+        ax.text(x_pos[1], y_values[1]+0.015, "✅ 실패율 낮음", color="green", ha="center")
 
-        ax.scatter(x=grouped[f"{var}_bin"].iloc[6], y=grouped["Failure"].iloc[6], s=150, color="red", zorder=5)
-        ax.text(x=grouped[f"{var}_bin"].iloc[6], y=grouped["Failure"].iloc[6]+0.02, 
-                s="⚠ 실패율 증가", color="red", ha="center", fontsize=10)
+        ax.scatter(x_pos[6], y_values[6], s=150, color="red", zorder=5)
+        ax.text(x_pos[6], y_values[6]+0.015, "⚠ 실패율 증가", color="red", ha="center")
 
     elif var == "Temperature":
-        ax.scatter(x=grouped[f"{var}_bin"].iloc[1], y=grouped["Failure"].iloc[1], s=150, color="green", zorder=5)
-        ax.text(x=grouped[f"{var}_bin"].iloc[1], y=grouped["Failure"].iloc[1]+0.02, 
-                s="✅ 최적 온도", color="green", ha="center", fontsize=10)
+        ax.scatter(x_pos[1], y_values[1], s=150, color="green", zorder=5)
+        ax.text(x_pos[1], y_values[1]+0.015, "✅ 최적 온도", color="green", ha="center")
 
-        ax.scatter(x=grouped[f"{var}_bin"].iloc[5], y=grouped["Failure"].iloc[5], s=150, color="red", zorder=5)
-        ax.text(x=grouped[f"{var}_bin"].iloc[5], y=grouped["Failure"].iloc[5]+0.02, 
-                s="⚠ 고온 위험", color="red", ha="center", fontsize=10)
+        ax.scatter(x_pos[5], y_values[5], s=150, color="red", zorder=5)
+        ax.text(x_pos[5], y_values[5]+0.015, "⚠ 고온 위험", color="red", ha="center")
 
     elif var == "Humidity":
-        ax.scatter(x=grouped[f"{var}_bin"].iloc[2], y=grouped["Failure"].iloc[2], s=150, color="green", zorder=5)
-        ax.text(x=grouped[f"{var}_bin"].iloc[2], y=grouped["Failure"].iloc[2]+0.02, 
-                s="✅ 적절 습도", color="green", ha="center", fontsize=10)
+        ax.scatter(x_pos[2], y_values[2], s=150, color="green", zorder=5)
+        ax.text(x_pos[2], y_values[2]+0.015, "✅ 적절 습도", color="green", ha="center")
 
-        ax.scatter(x=grouped[f"{var}_bin"].iloc[5], y=grouped["Failure"].iloc[5], s=150, color="red", zorder=5)
-        ax.text(x=grouped[f"{var}_bin"].iloc[5], y=grouped["Failure"].iloc[5]+0.02, 
-                s="⚠ 고습 실패율 급등", color="red", ha="center", fontsize=10)
+        ax.scatter(x_pos[5], y_values[5], s=150, color="red", zorder=5)
+        ax.text(x_pos[5], y_values[5]+0.015, "⚠ 고습 실패율 급등", color="red", ha="center")
 
     st.pyplot(fig)
-
 
 
 
