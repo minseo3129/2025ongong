@@ -179,48 +179,54 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
 
 import streamlit as st
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-# 📌 한글 폰트 설정
+# 📌 폰트 및 스타일 설정
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
+sns.set_style("whitegrid")
 
 # ✅ 페이지 설정
 st.set_page_config(layout="wide")
 st.title("📊 온도 & 습도 조합별 생장 실패율 분석")
 
-# ✅ 데이터 불러오기
+# ✅ 데이터 로딩
 df = pd.read_csv("plant_growth_data.csv")
 df["Failure"] = 1 - df["Growth_Milestone"]
 
-# ✅ 온도와 습도 구간화
+# ✅ 구간화
 temp_bins = [15, 20, 25, 30, 35]
 humid_bins = [40, 50, 60, 70, 80]
-df["Temp_group"] = pd.cut(df["Temperature"], bins=temp_bins, include_lowest=True)
-df["Humid_group"] = pd.cut(df["Humidity"], bins=humid_bins, include_lowest=True)
+df["Temp_bin"] = pd.cut(df["Temperature"], bins=temp_bins, include_lowest=True)
+df["Humid_bin"] = pd.cut(df["Humidity"], bins=humid_bins, include_lowest=True)
 
 # ✅ 조합별 실패율 계산
-combo_df = df.groupby(["Temp_group", "Humid_group"])["Failure"].mean().reset_index()
-combo_df = combo_df.dropna()
-combo_df["조합"] = combo_df["Temp_group"].astype(str) + " & " + combo_df["Humid_group"].astype(str)
+combo_df = df.groupby(["Temp_bin", "Humid_bin"])["Failure"].mean().reset_index()
+combo_df.dropna(inplace=True)
+combo_df["조합"] = combo_df["Temp_bin"].astype(str) + " & " + combo_df["Humid_bin"].astype(str)
 combo_df = combo_df.sort_values(by="Failure", ascending=False)
 
 # ✅ 시각화
 fig, ax = plt.subplots(figsize=(14, 6))
-sns.barplot(data=combo_df, x="조합", y="Failure", color="royalblue", ax=ax)
+sns.barplot(data=combo_df, x="조합", y="Failure", color="cornflowerblue", ax=ax)
+ax.set_title("Failure Rate by Temperature & Humidity Combination", fontsize=15)
+ax.set_xlabel("온도 & 습도 조합", fontsize=12)
+ax.set_ylabel("실패율", fontsize=12)
 plt.xticks(rotation=90)
-plt.title("Failure Rate by Temperature & Humidity Combination", fontsize=14)
-plt.ylabel("Failure Rate")
-plt.xlabel("Temperature & Humidity Group")
 st.pyplot(fig)
 
-# ✅ 해석 요약
+# ✅ 분석 요약
 st.markdown("""
-### 🔍 분석 요약
-- ✅ **30–35°C & 70–80%** 조합에서 생장 실패율이 가장 높음 → 고온다습 환경은 주의
-- ⚠️ **25–30°C & 60–70%**도 높은 실패율 → 중온다습도 관리 필요
-- 🌱 **20–25°C & 50–60%** 조합이 가장 안정적 → 최적 생장 조건으로 판단됨
+### 🔍 주요 분석 결과
+- ✅ **30~35°C & 70~80%** 조합 → **가장 높은 실패율**  
+  → 고온다습 환경은 생장을 강하게 저해하며 통풍/냉방 필요
+
+- ⚠️ **25~30°C & 60~70%** 조합 → **중상위 실패율**  
+  → 중온다습 환경도 위험할 수 있어 습도 제어 필요
+
+- 🌱 **20~25°C & 50~60%** 조합 → **가장 낮은 실패율**  
+  → 최적의 생장 조건으로 판단됨
 """)
 # 📊 6. 사용자 조건 기반 실패율 예측
 st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
