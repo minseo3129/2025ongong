@@ -23,17 +23,16 @@ name_map = {
     "Humidity": "습도"
 }
 
-# 📊 1. 생장 성공/실패군의 주요 변수 분포
+#1. 박스플롯
 st.subheader("1. 생장 성공/실패군의 주요 변수 분포")
-for feature in name_map:
-    fig, ax = plt.subplots()
-    sns.boxplot(data=df, x="Failure", y=feature, palette="pastel", ax=ax)
-    ax.set_title(f"{name_map[feature]}에 따른 생장 성공/실패 분포", fontsize=14)
-    ax.set_xlabel("성공(0) / 실패(1)", fontsize=12)
-    ax.set_ylabel(name_map[feature], fontsize=12)
-    st.pyplot(fig)
-
-# 📊 2. 조건별 생장 결과의 분산 분석
+for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
+    fig = px.box(df, x="Failure", y=feature, color="Failure",
+                 title=f"{name_map[feature]}에 따른 생장 성공/실패 분포",
+                 labels={"Failure": "성공(0)/실패(1)", feature: name_map[feature]})
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+# 2. 조건별 생장 결과의 분산 분석
 st.subheader("2. 조건별 생장 결과의 분산 분석")
 
 # 조건 조합 문자열 생성
