@@ -36,7 +36,94 @@ for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-st.subheader("2. 조건 조합별 생장 실패율 히트맵")
+
+# 페이지 설정
+st.set_page_config(layout="wide")
+st.title("⚠️ 연속형 변수별 임계 구간 분석")
+
+# CSV 데이터 불러오기
+df = pd.read_csv("plant_growth_data.csv")
+df["Failure"] = 1 - df["Growth_Milestone"]
+
+# 분석 대상 변수와 구간 설정
+bin_settings = {
+    "Sunlight_Hours": [4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "Temperature": [15, 20, 22, 25, 28, 30, 32, 35],
+    "Humidity": [30, 40, 50, 60, 70, 80, 90]
+}
+name_map = {
+    "Sunlight_Hours": "햇빛 노출 시간",
+    "Temperature": "온도",
+    "Humidity": "습도"
+}
+
+# 시각화
+for var in bin_settings:
+    st.subheader(f"{name_map[var]} 구간별 실패율")
+    df[f"{var}_bin"] = pd.cut(df[var], bins=bin_settings[var])
+    grouped = df.groupby(f"{var}_bin")["Failure"].mean().reset_index()
+    grouped[f"{var}_bin"] = grouped[f"{var}_bin"].astype(str)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    sns.barplot(data=grouped, x=f"{var}_bin", y="Failure", color="skyblue", ax=ax)
+    ax.set_title(f"{name_map[var]} 구간별 생장 실패율", fontsize=14)
+    ax.set_ylabel("실패율")
+    ax.set_xlabel(f"{name_map[var]} 구간")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+
+
+
+
+
+
+
+import streamlit as st
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+st.subheader("2. 연속형 변수별 임계 구간 분석")
+
+# 분석 대상 변수와 구간 설정
+bin_settings = {
+    "Sunlight_Hours": [4, 5, 6, 7, 8, 9, 10, 11, 12],
+    "Temperature": [15, 20, 22, 25, 28, 30, 32, 35],
+    "Humidity": [30, 40, 50, 60, 70, 80, 90]
+}
+name_map = {
+    "Sunlight_Hours": "햇빛 노출 시간",
+    "Temperature": "온도",
+    "Humidity": "습도"
+}
+
+# 시각화
+for var in bin_settings:
+    st.subheader(f"{name_map[var]} 구간별 실패율")
+    df[f"{var}_bin"] = pd.cut(df[var], bins=bin_settings[var])
+    grouped = df.groupby(f"{var}_bin")["Failure"].mean().reset_index()
+    grouped[f"{var}_bin"] = grouped[f"{var}_bin"].astype(str)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    sns.barplot(data=grouped, x=f"{var}_bin", y="Failure", color="skyblue", ax=ax)
+    ax.set_title(f"{name_map[var]} 구간별 생장 실패율", fontsize=14)
+    ax.set_ylabel("실패율")
+    ax.set_xlabel(f"{name_map[var]} 구간")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+
+
+
+
+
+
+
+
+
+
+st.subheader("3. 조건 조합별 생장 실패율 히트맵")
 
 # 한글 컬럼명으로 변경
 df_rename = df.rename(columns={
@@ -62,6 +149,7 @@ plt.title("토양 유형, 물 주기, 비료 조합별 생장 실패율")
 plt.ylabel("토양 유형")
 plt.xlabel("물주기 × 비료 조합")
 st.pyplot(fig)
+
 
 
 # 3. 임계값별 실패율 분석
