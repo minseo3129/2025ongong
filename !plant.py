@@ -177,6 +177,52 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
     'antecedents': '조건 조합', 'support': '지지도', 'confidence': '신뢰도', 'lift': '향상도'
 }))
 
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 📌 한글 폰트 설정 (윈도우 기준)
+plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["axes.unicode_minus"] = False
+
+# ✅ 페이지 설정
+st.set_page_config(layout="wide")
+st.title("📊 4. 변수 간 상호작용 분석: 온도 & 습도 조합별 생장 실패율")
+
+# ✅ 데이터 불러오기
+df = pd.read_csv("plant_growth_data.csv")
+df["Failure"] = 1 - df["Growth_Milestone"]
+
+# ✅ 온도 및 습도 구간화
+df["Temp_bin"] = pd.cut(df["Temperature"], bins=[15, 20, 25, 30, 35])
+df["Humid_bin"] = pd.cut(df["Humidity"], bins=[30, 40, 50, 60, 70, 80])
+
+# ✅ 그룹별 실패율 계산
+pivot_df = df.groupby(["Temp_bin", "Humid_bin"])["Failure"].mean().reset_index()
+pivot_table = pivot_df.pivot(index="Humid_bin", columns="Temp_bin", values="Failure")
+
+# ✅ 시각화 (Heatmap)
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(pivot_table, annot=True, cmap="YlOrRd", fmt=".2f", linewidths=0.5, ax=ax)
+
+ax.set_title("🌡️ 온도 & 💧습도 조합에 따른 생장 실패율", fontsize=16)
+ax.set_xlabel("온도 구간 (°C)")
+ax.set_ylabel("습도 구간 (%)")
+
+st.pyplot(fig)
+
+# ✅ 인사이트 출력
+st.markdown("### 🔍 주요 인사이트")
+st.markdown("""
+- ✅ **30~35°C & 70~80% 습도** 조합에서 **실패율 최고** → **고온 다습 환경은 생장을 저해**  
+  → 스마트팜 내 통풍, 냉방, 수분 조절 필요
+
+- ⚠️ **25~30°C & 60~70%**도 실패율 중상위 → **중온 다습 환경도 주의 대상**
+
+- 🌿 **20~25°C & 50~60%** 조합은 가장 안정적 → **성장에 적합한 최적 환경**
+""")
+
 # 📊 6. 사용자 조건 기반 실패율 예측
 st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
 soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
