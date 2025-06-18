@@ -250,12 +250,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# 📌 페이지 설정
-st.set_page_config(layout="wide")
 st.subheader("2. 조건별 생장 결과의 분산 분석")
 
-# ✅ 데이터 로드
-df = pd.read_csv("plant_growth_data.csv")
 
 # ✅ 조건 그룹 생성
 df["조건조합"] = df["Soil_Type"] + " | " + df["Water_Frequency"] + " | " + df["Fertilizer_Type"]
