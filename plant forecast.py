@@ -13,11 +13,10 @@ plt.rcParams["axes.unicode_minus"] = False
 st.set_page_config(layout="wide")
 st.title("🌱 스마트팜 생장 데이터 분석 및 조건 기반 작물 재배 매뉴얼")
 
-# 데이터 로드
-url = "https://raw.githubusercontent.com/사용자아이디/저장소명/main/plant_growth_data.csv"  # 실제 경로로 수정
-st.sidebar.header("📂 데이터 불러오기")
-df = pd.read_csv(url)
-df["Failure"] = 1 - df["Growth_Milestone"]
+# GitHub에서 다운로드하여 현재 폴더에 저장한 경우
+df = pd.read_csv("plant_growth_data.csv")
+features = df.columns[:-1]
+
 
 # 📊 1. 박스플롯
 st.subheader("📊 1. 생장 성공/실패군의 주요 변수 분포 (Boxplot)")
