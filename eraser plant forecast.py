@@ -35,9 +35,22 @@ for feature in ["Sunlight_Hours", "Temperature", "Humidity"]:
 
 # 2. 조건 조합별 실패율 히트맵
 st.subheader("2. 조건 조합별 생장 실패율 히트맵")
-combo_df = df.groupby(["Soil_Type", "Water_Frequency", "Fertilizer_Type"])["Failure"].mean().reset_index()
-pivot_df = combo_df.pivot_table(index="Soil_Type", columns=["Water_Frequency", "Fertilizer_Type"], values="Failure")
+
+# 한글로 표시될 열 이름 설정
+df_rename = df.rename(columns={
+    "Soil_Type": "토양",
+    "Water_Frequency": "물",
+    "Fertilizer_Type": "비료",
+    "Failure": "실패율"
+})
+
+# 집계
+combo_df = df_rename.groupby(["토양", "물", "비료"])["실패율"].mean().reset_index()
+pivot_df = combo_df.pivot_table(index="토양", columns=["물", "비료"], values="실패율")
+
+# 데이터프레임 출력
 st.dataframe((pivot_df * 100).round(1), use_container_width=True)
+
 
 # 3. 임계값별 실패율 분석
 st.subheader("3. 연속형 변수별 임계값 구간에 따른 생장 실패율")
