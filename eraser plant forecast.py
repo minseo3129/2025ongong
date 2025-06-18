@@ -98,6 +98,9 @@ data_vector = all_encoded.iloc[:-1]
 input_vector = input_vector.reindex(columns=data_vector.columns, fill_value=0)
 labels = df["Failure"]
 
+input_vector = input_vector.reindex(columns=data_vector.columns, fill_value=0)
+
+
 model = KNeighborsClassifier(n_neighbors=5)
 model.fit(data_vector, labels)
 pred_prob = model.predict_proba(input_vector)[0][1]
