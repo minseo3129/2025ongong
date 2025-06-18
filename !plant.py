@@ -252,7 +252,6 @@ import seaborn as sns
 
 st.subheader("2. 조건별 생장 결과의 분산 분석")
 
-
 # ✅ 조건 그룹 생성
 df["조건조합"] = df["Soil_Type"] + " | " + df["Water_Frequency"] + " | " + df["Fertilizer_Type"]
 
