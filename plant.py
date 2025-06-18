@@ -57,30 +57,71 @@ ax.set_ylabel("Growth_Milestone (생장률)", fontsize=12)
 plt.xticks(rotation=45)
 st.pyplot(fig)
 
-# 📊 3. 연속형 변수별 임계 구간 실패율 분석
-st.subheader("3. 연속형 변수별 임계 구간에 따른 생장 실패율 분석")
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.rcParams["axes.unicode_minus"] = False
+plt.rcParams["font.family"] = "Malgun Gothic"
+
+st.set_page_config(layout="wide")
+st.title("📊 3. 연속형 변수별 임계 구간에 따른 생장 실패율 분석")
+
+df = pd.read_csv("plant_growth_data.csv")
+df["Failure"] = 1 - df["Growth_Milestone"]
+
 bin_settings = {
     "Sunlight_Hours": [4, 5, 6, 7, 8, 9, 10, 11, 12],
     "Temperature": [15, 20, 22, 25, 28, 30, 32, 35],
     "Humidity": [30, 40, 50, 60, 70, 80, 90]
 }
+name_map = {
+    "Sunlight_Hours": "☀ 햇빛 노출 시간",
+    "Temperature": "🌡 온도",
+    "Humidity": "💧 습도"
+}
+
 for var in bin_settings:
     df[f"{var}_bin"] = pd.cut(df[var], bins=bin_settings[var])
     grouped = df.groupby(f"{var}_bin")["Failure"].mean().reset_index()
     grouped[f"{var}_bin"] = grouped[f"{var}_bin"].astype(str)
+
     x_labels = grouped[f"{var}_bin"].tolist()
     x_pos = list(range(len(x_labels)))
     y_values = grouped["Failure"].tolist()
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(x_pos, y_values, marker='o', color='tomato', linewidth=2.5)
+    ax.plot(x_pos, y_values, marker='o', color='steelblue', linewidth=2.5)
     ax.set_xticks(x_pos)
     ax.set_xticklabels(x_labels, rotation=45)
     ax.set_title(f"{name_map[var]}에 따른 생장 실패율 변화", fontsize=15)
     ax.set_ylabel("실패율", fontsize=12)
     ax.set_xlabel(f"{name_map[var]} 구간", fontsize=12)
-    st.pyplot(fig)
 
+    # 강조 점
+    if var == "Sunlight_Hours":
+        ax.scatter(x_pos[1], y_values[1], s=150, color="green", zorder=5)
+        ax.text(x_pos[1], y_values[1]+0.015, "✅ 실패율 낮음", color="green", ha="center")
+
+        ax.scatter(x_pos[6], y_values[6], s=150, color="red", zorder=5)
+        ax.text(x_pos[6], y_values[6]+0.015, "⚠ 실패율 증가", color="red", ha="center")
+
+    elif var == "Temperature":
+        ax.scatter(x_pos[1], y_values[1], s=150, color="green", zorder=5)
+        ax.text(x_pos[1], y_values[1]+0.015, "✅ 최적 온도", color="green", ha="center")
+
+        ax.scatter(x_pos[5], y_values[5], s=150, color="red", zorder=5)
+        ax.text(x_pos[5], y_values[5]+0.015, "⚠ 고온 위험", color="red", ha="center")
+
+    elif var == "Humidity":
+        ax.scatter(x_pos[2], y_values[2], s=150, color="green", zorder=5)
+        ax.text(x_pos[2], y_values[2]+0.015, "✅ 적절 습도", color="green", ha="center")
+
+        ax.scatter(x_pos[5], y_values[5], s=150, color="red", zorder=5)
+        ax.text(x_pos[5], y_values[5]+0.015, "⚠ 고습 실패율 급등", color="red", ha="center")
+
+    st.pyplot(fig)
 # 📊 4. 조건 조합별 생장 실패율 히트맵
 st.subheader("4. 조건 조합별 생장 실패율 히트맵")
 df_rename = df.rename(columns={"Soil_Type": "토양", "Water_Frequency": "물주기", "Fertilizer_Type": "비료", "Failure": "실패율"})
