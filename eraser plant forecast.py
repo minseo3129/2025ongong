@@ -103,6 +103,36 @@ st.dataframe(risk_rules[['antecedents', 'support', 'confidence', 'lift']].rename
     'antecedents': '조건 조합', 'support': '지지도', 'confidence': '신뢰도', 'lift': '향상도'
 }))
 
+from scipy.stats import f_oneway
+
+st.subheader("3. 연속형 변수별 임계값 구간에 따른 생장 실패율 및 분산분석")
+
+for feature, bins in [("Sunlight_Hours", 6), ("Temperature", 6), ("Humidity", 6)]:
+    # 구간화
+    df[f"{feature}_bin"] = pd.cut(df[feature], bins)
+    
+    # 시각화용 막대그래프
+    bin_df = df.groupby(f"{feature}_bin")["Failure"].mean().reset_index()
+    bin_df[f"{feature}_bin"] = bin_df[f"{feature}_bin"].astype(str)
+    fig = px.bar(bin_df, x=f"{feature}_bin", y="Failure",
+                 title=f"{name_map[feature]} 구간별 생장 실패율",
+                 labels={"Failure": "실패율", f"{feature}_bin": f"{name_map[feature]} 구간"})
+    st.plotly_chart(fig, use_container_width=True)
+
+    # 분산분석
+    groups = [df[df[f"{feature}_bin"] == bin_group]["Failure"] for bin_group in df[f"{feature}_bin"].unique()]
+    anova_result = f_oneway(*groups)
+
+    st.markdown(f"**🔬 {name_map[feature]}에 따른 실패율 분산분석 결과 (ANOVA):**")
+    st.markdown(f"- F값: `{anova_result.statistic:.3f}`")
+    st.markdown(f"- p값: `{anova_result.pvalue:.4f}`")
+
+    if anova_result.pvalue < 0.05:
+        st.success("👉 구간별 실패율 차이가 통계적으로 유의함 (p < 0.05)~")
+    else:
+        st.info("➖ 통계적으로 유의한 차이는 없음 (p ≥ 0.05)~")
+
+
 # 6. 사용자 예측
 st.subheader("6. 사용자 조건 기반 실패 리스크 예측")
 soil = st.selectbox("토양 유형", df["Soil_Type"].unique())
