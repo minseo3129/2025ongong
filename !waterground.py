@@ -14,7 +14,7 @@ def load_and_clean_data():
     # 컬럼명 정제
     df.columns = df.columns.str.strip().str.replace(" ", "_").str.replace("(", "").str.replace(")", "")
 
-    # 수질 관련 주요 컬럼 리네이밍
+    # 리네이밍
     df = df.rename(columns={
         "Residual_Free_Chlorine_mg/L": "Chlorine",
         "Turbidity_NTU": "Turbidity",
@@ -24,7 +24,21 @@ def load_and_clean_data():
         "Sample_Date": "Date"
     })
 
-    # 문자열 수치 변환
+    # Sample_class 자동 인식
+    sample_class_col = None
+    for candidate in ["Sample_class", "Sample_Class", "SampleClass"]:
+        if candidate in df.columns:
+            sample_class_col = candidate
+            break
+
+    if sample_class_col is None:
+        st.error("❌ 'Sample_class' 컬럼이 존재하지 않습니다.")
+        st.write("사용 가능한 컬럼:", df.columns.tolist())
+        st.stop()
+
+    df = df.rename(columns={sample_class_col: "Sample_Class"})
+
+    # 문자열 수치 변환 함수
     def convert_text(v):
         if isinstance(v, str):
             v = v.replace("<", "").replace(">", "").replace("+", "").strip()
@@ -39,22 +53,7 @@ def load_and_clean_data():
         if col in df.columns:
             df[col] = df[col].apply(convert_text)
 
-    # 날짜 처리
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-
-    # Sample_Class 확인
-    sample_class_col = None
-    for candidate in ["Sample_Class", "SampleClass", "Sample_Class_"]:
-        if candidate in df.columns:
-            sample_class_col = candidate
-            break
-
-    if sample_class_col is None:
-        st.error("❌ 'Sample_Class' 또는 유사 컬럼이 존재하지 않습니다. 실제 컬럼명을 확인해 주세요.")
-        st.write("사용 가능한 컬럼:", df.columns.tolist())
-        st.stop()
-
-    df = df.rename(columns={sample_class_col: "Sample_Class"})
     df = df.dropna(subset=["Date", "Sample_Class", "Turbidity", "Chlorine", "Coliform", "Ecoli"])
     df["Month"] = df["Date"].dt.to_period("M").astype(str)
 
@@ -142,9 +141,9 @@ else:
     st.success("✅ 입력하신 수치는 모두 안전 기준 내에 있습니다.")
 
 # -------------------------------
-# 8. 마무리 문구
+# 8. 마무리
 # -------------------------------
 st.markdown("---")
-st.caption("📘 본 프로젝트는 WHO 수질 기준 및 SDG 6(깨끗한 물과 위생) 목표 달성에 기여하기 위한 데이터 기반 수질 분석 시스템입니다.")
+st.caption("📘 본 시스템은 WHO 수질 기준 및 SDG 6(깨끗한 물과 위생) 목표 달성을 위한 시민 참여형 수질 분석 도구입니다.")
 
 
