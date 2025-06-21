@@ -1,156 +1,88 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.impute import SimpleImputer
+import numpy as np
+import plotly.express as px
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
-# 한글 폰트 설정
-plt.rcParams["font.family"] = "Malgun Gothic"
-plt.rcParams["axes.unicode_minus"] = False
+# 데이터 불러오기
+@st.cache_data
+def load_data():
+    df = pd.read_csv("cities_air_quality_water_pollution.csv")
+    df.columns = df.columns.str.replace('"', '').str.strip()
+    df = df.rename(columns={"AirQuality": "Air_Quality", "WaterPollution": "Water_Pollution"})
+    df["Air_Quality"] = pd.to_numeric(df["Air_Quality"], errors='coerce')
+    df["Water_Pollution"] = pd.to_numeric(df["Water_Pollution"], errors='coerce')
+    return df.dropna()
 
-# 페이지 설정
-st.set_page_config(page_title="물의 음용 가능성 판단 시스템", layout="wide")
-st.title("💧 수질 기반 음용 가능성 예측 시스템")
+df = load_data()
 
-# 내장 데이터 로드
-df = pd.read_csv("water_potability.csv")
-features = df.columns[:-1]
+# Streamlit UI
+st.set_page_config(page_title="NYC 수질 대시보드", layout="wide")
+st.title("🌆 NYC 수질 영향 요인 분석 및 고위험 지역 제안")
 
-# 변수 정보 및 WHO 기준
-feature_meta = {
-    "ph": {
-        "label": "수소 이온 농도 (pH)",
-        "unit": "",
-        "desc": "🧪 WHO 권장: 6.5~8.5",
-        "min": 6.5, "max": 8.5,
-        "cause": "극단적인 산도는 소화기 및 피부 자극 가능",
-        "solution": "중화제 또는 자연 여과로 조절"
-    },
-    "Hardness": {
-        "label": "경도",
-        "unit": "mg/L",
-        "desc": "🧪 WHO 권장: 최대 500",
-        "max": 500,
-        "cause": "높은 경도는 미각 변화 및 세제 작용 저하",
-        "solution": "연수기 또는 이온교환 필터 사용"
-    },
-    "Solids": {
-        "label": "총 용존 고형물 (TDS)",
-        "unit": "mg/L",
-        "desc": "🧪 WHO 권장: 최대 1000",
-        "max": 1000,
-        "cause": "무기물·유기물 과잉으로 물맛 저하 및 위장장애 가능성",
-        "solution": "활성탄 필터, 역삼투압 여과 적용"
-    },
-    "Chloramines": {
-        "label": "클로라민",
-        "unit": "ppm",
-        "desc": "🧪 WHO 권장: 최대 4",
-        "max": 4,
-        "cause": "잔류 염소가 인체에 해로울 수 있음",
-        "solution": "탄소 필터 또는 UV 소독"
-    },
-    "Sulfate": {
-        "label": "황산염",
-        "unit": "mg/L",
-        "desc": "🧪 권장 기준: 최대 250",
-        "max": 250,
-        "cause": "설사, 위장 자극 가능성",
-        "solution": "석회화, 역삼투압 처리"
-    },
-    "Conductivity": {
-        "label": "전기전도도",
-        "unit": "μS/cm",
-        "desc": "🧪 WHO 권장: 최대 400",
-        "max": 400,
-        "cause": "과다 이온 농도는 심혈관계 문제 유발 가능",
-        "solution": "탈염 시스템 적용"
-    },
-    "Organic_carbon": {
-        "label": "유기 탄소",
-        "unit": "mg/L",
-        "desc": "🧪 WHO 권장: 최대 2",
-        "max": 2,
-        "cause": "염소와 반응 시 발암물질(THMs) 생성",
-        "solution": "오존 처리, 유기물 여과"
-    },
-    "Trihalomethanes": {
-        "label": "트리할로메탄",
-        "unit": "ppb",
-        "desc": "🧪 WHO 권장: 최대 80",
-        "max": 80,
-        "cause": "장기 노출 시 암 유발 위험",
-        "solution": "UV 소독 또는 유기물 제거"
-    },
-    "Turbidity": {
-        "label": "탁도",
-        "unit": "NTU",
-        "desc": "🧪 WHO 권장: 최대 5",
-        "max": 5,
-        "cause": "부유물은 병원성 미생물 서식 위험",
-        "solution": "응집, 침전, 모래 여과"
-    }
-}
+# 1단계: 요약 통계
+st.header("1단계. 📊 도시별 수질 통계")
+st.dataframe(df[['Air_Quality', 'Water_Pollution']].describe())
 
-# 모델 학습
-X = df.drop("Potability", axis=1)
-y = df["Potability"]
-imputer = SimpleImputer(strategy="mean")
-X_imputed = imputer.fit_transform(X)
-X_train, X_test, y_train, y_test = train_test_split(X_imputed, y, test_size=0.2, random_state=42)
-model = DecisionTreeClassifier(max_depth=4, random_state=42)
-model.fit(X_train, y_train)
+# 2단계: 시간 또는 지역 기반 비교는 시간 데이터 없으므로 대체 생략 가능
 
-# 사용자 입력
-st.header("🔎 수질 항목 입력")
-user_input = {}
-for f in features:
-    meta = feature_meta[f]
-    val = st.number_input(f"{meta['label']} ({meta['unit']})", min_value=0.0, step=0.1, key=f)
-    st.caption(meta["desc"])
-    user_input[f] = val
+# 3단계: 상관분석
+st.header("3단계. 🔗 상관분석")
+corr = df[['Air_Quality', 'Water_Pollution']].corr()
+st.dataframe(corr)
 
-# 예측 실행
-if st.button("📈 예측 실행"):
-    input_df = pd.DataFrame([user_input])
-    input_df_imputed = pd.DataFrame(imputer.transform(input_df), columns=features)
+# 4단계: 회귀분석 (Air_Quality로 Water_Pollution 예측)
+st.header("4단계. 📈 회귀분석 (수질 오염도 예측)")
+X = df[['Air_Quality']]
+y = df['Water_Pollution']
+model = LinearRegression().fit(X, y)
+st.write("회귀계수:", model.coef_[0])
+st.write("절편:", model.intercept_)
+st.write("R²:", model.score(X, y))
 
-    # WHO 기준 초과 여부 판단
-    violations = []
-    for f, val in user_input.items():
-        meta = feature_meta[f]
-        if "min" in meta and val < meta["min"]:
-            violations.append((meta["label"], f"{val} → 기준 미달", meta["cause"], meta["solution"]))
-        elif "max" in meta and val > meta["max"]:
-            violations.append((meta["label"], f"{val} → 기준 초과", meta["cause"], meta["solution"]))
+# 5단계: PCA
+st.header("5단계. 🧠 요인분석(PCA)")
+scaler = StandardScaler()
+features = df[['Air_Quality', 'Water_Pollution']]
+features_scaled = scaler.fit_transform(features)
+pca = PCA(n_components=2)
+components = pca.fit_transform(features_scaled)
+df['PC1'] = components[:, 0]
+df['PC2'] = components[:, 1]
+st.write("PCA 설명 분산 비율:", pca.explained_variance_ratio_)
 
-    # 결과 출력
-    if violations:
-        st.error("🚫 음용 불가 - WHO 기준 초과 항목 존재")
-        st.subheader("📌 문제 항목 및 해결 방안")
-        for label, 상태, 원인, 해결 in violations:
-            st.markdown(f"""
-            - 🔍 **{label}**  
-              상태: {상태}  
-              원인: {원인}  
-              해결 방안: {해결}
-            """)
+# 6단계: 초과빈도 기반 위험 지표 생성
+st.header("6단계. 📉 위험지수 계산 (LDC 유사)")
+df['Risk_Index'] = (100 - df['Air_Quality']) + df['Water_Pollution']
+df['Risk_Level'] = pd.cut(df['Risk_Index'], bins=[0, 80, 120, 200], labels=["Low", "Moderate", "High"])
+st.dataframe(df[['City', 'Country', 'Risk_Index', 'Risk_Level']].sort_values('Risk_Index', ascending=False).head(10))
+
+# 7단계: 지도 시각화 (위치 정보가 없는 경우 대체 바차트)
+st.header("7단계. 🗺️ 고위험 도시 시각화")
+top_risk = df.sort_values('Risk_Index', ascending=False).head(15)
+fig_map = px.bar(top_risk, x='City', y='Risk_Index', color='Risk_Level', title='상위 위험 도시')
+st.plotly_chart(fig_map, use_container_width=True)
+
+# 8단계: 사용자 입력 기반 위험도 진단
+st.header("8단계. 🧪 사용자 도시 수질 입력 진단")
+air_q = st.slider("공기질 (0: 나쁨 ~ 100: 좋음)", 0.0, 100.0, 60.0)
+water_p = st.slider("수질 오염도 (0: 없음 ~ 100: 심각)", 0.0, 100.0, 50.0)
+user_risk = (100 - air_q) + water_p
+
+if st.button("📋 도시 위험도 평가"):
+    st.markdown(f"**위험지수: {user_risk:.1f}**")
+    if user_risk >= 120:
+        st.error("🚨 고위험 지역")
+    elif user_risk >= 80:
+        st.warning("⚠️ 주의가 필요한 지역")
     else:
-        pred = model.predict(input_df_imputed)[0]
-        prob = model.predict_proba(input_df_imputed)[0][pred]
-        if pred == 1:
-            st.success(f"✅ 이 물은 **음용 가능합니다**. (신뢰도: {prob*100:.2f}%)")
-        else:
-            st.warning(f"⚠ 음용 **불가능**합니다. (신뢰도: {prob*100:.2f}%)")
+        st.success("✅ 안전 수준")
 
-# 변수 중요도 시각화
-st.subheader("📊 변수 중요도 (예측 모델 기반)")
-importance_df = pd.DataFrame({
-    "항목": [feature_meta[f]["label"] for f in features],
-    "중요도": model.feature_importances_
-}).sort_values(by="중요도", ascending=False)
+# 부록: 참고문헌 링크
+st.markdown("---")
+st.caption("참고: 정용훈 외 (2025), 『유역모델을 이용한 섬진강댐 수질 영향 인자 분석 및 오염부하 특성 평가』, 대한환경공학회지.")
 
 fig, ax = plt.subplots()
 sns.barplot(data=importance_df, x="중요도", y="항목", ax=ax, palette="crest")
