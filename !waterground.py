@@ -2,13 +2,13 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from sklearn.linear_model import LinearRegression
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from scipy.stats import percentileofscore
 
-# 0. 데이터 불러오기 및 정리
+# ------------------------
+# 1. 데이터 로딩 및 전처리
+# ------------------------
 @st.cache_data
-def load_data():
+def load_and_clean_data():
     df = pd.read_csv("Drinking_Water_Quality_Distribution_Monitoring_Data.csv")
     df.columns = df.columns.str.replace(" ", "_").str.replace("(", "").str.replace(")", "")
     df = df.rename(columns={
@@ -16,94 +16,116 @@ def load_data():
         "Turbidity_NTU": "Turbidity",
         "Coliform_Quanti-Tray_MPN_/100mL": "Coliform",
         "E.coliQuanti-Tray_MPN/100mL": "Ecoli",
-        "Fluoride_mg/L": "Fluoride"
+        "Fluoride_mg/L": "Fluoride",
+        "Sample_Date": "Date",
+        "Sample_Class": "Class"
     })
-    df = df[["Sample_Date", "Chlorine", "Turbidity", "Coliform", "Ecoli", "Fluoride"]]
-    for col in ["Chlorine", "Turbidity", "Coliform", "Ecoli", "Fluoride"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-    df["Sample_Date"] = pd.to_datetime(df["Sample_Date"], errors="coerce")
-    df = df.dropna()
+
+    def convert_text(v):
+        if isinstance(v, str):
+            v = v.strip().replace("<", "").replace(">", "").replace("+", "")
+            if v.lower() == "nd":
+                return np.nan
+        try:
+            return float(v)
+        except:
+            return np.nan
+
+    for col in ["Turbidity", "Chlorine", "Coliform", "Ecoli", "Fluoride"]:
+        df[col] = df[col].apply(convert_text)
+
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df.dropna(subset=["Date", "Class", "Turbidity", "Chlorine", "Coliform", "Ecoli"])
+    df["Month"] = df["Date"].dt.to_period("M").astype(str)
     return df
 
-df = load_data()
+df = load_and_clean_data()
 
-st.set_page_config(page_title="NYC 수질 분석", layout="wide")
-st.title("🌆 NYC 수돗물 수질 영향 요인 분석 대시보드 (Sample Site 미포함)")
+st.set_page_config(layout="wide")
+st.title("💧 NYC 수돗물 수질 진단 및 분석 대시보드")
+st.caption("SDG 6 기반 수질 위험요소 감지 및 시민 참여형 진단 시스템")
 
-numeric_cols = ["Turbidity", "Chlorine", "Coliform", "Ecoli", "Fluoride"]
+# ------------------------
+# 2. 샘플 유형별 수질 분석
+# ------------------------
+st.header("① 샘플 유형별 수질 안정성 비교")
 
-# 1단계: 전체 요약 통계
-st.header("1단계. 📊 수질 항목 요약 통계")
-st.dataframe(df[numeric_cols].describe())
+with st.expander("🔍 Compliance vs Operational 수질 평균 비교"):
+    summary = df.groupby("Class")[["Turbidity", "Chlorine", "Coliform", "Ecoli"]].agg(["mean", "std"])
+    st.dataframe(summary)
 
-# 2단계: 시계열 전체 추세 보기 (전체 데이터 기준)
-st.header("2단계. 🕒 전체 기간 탁도 시계열")
-fig_ts = px.line(df.sort_values("Sample_Date"), x="Sample_Date", y="Turbidity", title="전체 기간 탁도 변화")
-st.plotly_chart(fig_ts, use_container_width=True)
+# ------------------------
+# 3. 기준 초과 항목 비율 분석
+# ------------------------
+st.header("② 기준 초과 항목 비율 분석")
+df["Turbidity_Exceed"] = df["Turbidity"] > 5
+df["Chlorine_Low"] = df["Chlorine"] < 0.2
+df["Coliform_Positive"] = df["Coliform"] > 0
+df["Ecoli_Positive"] = df["Ecoli"] > 0
 
-# 3단계: 상관관계 분석
-st.header("3단계. 🔗 수질 항목 간 상관관계")
-st.dataframe(df[numeric_cols].corr())
+exceed_df = df[["Turbidity_Exceed", "Chlorine_Low", "Coliform_Positive", "Ecoli_Positive"]]
+st.bar_chart(exceed_df.mean() * 100)
 
-# 4단계: 회귀분석 (탁도 예측)
-st.header("4단계. 📈 탁도 예측 회귀분석")
-X = df[["Chlorine", "Coliform", "Fluoride"]]
-y = df["Turbidity"]
-model = LinearRegression().fit(X, y)
-st.write("회귀계수:", dict(zip(X.columns, model.coef_)))
-st.write("절편:", model.intercept_)
-st.write("R² score:", model.score(X, y))
+# ------------------------
+# 4. 월별 수질 추이 시각화
+# ------------------------
+st.header("③ 월별 수질 변화 추이")
+monthly_avg = df.groupby("Month")[["Turbidity", "Chlorine"]].mean().reset_index()
+fig1 = px.line(monthly_avg, x="Month", y="Turbidity", title="월별 평균 탁도")
+fig2 = px.line(monthly_avg, x="Month", y="Chlorine", title="월별 평균 염소 농도")
+st.plotly_chart(fig1, use_container_width=True)
+st.plotly_chart(fig2, use_container_width=True)
 
-# 5단계: PCA 분석
-st.header("5단계. 🧠 요인분석 (PCA)")
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(df[numeric_cols])
-pca = PCA(n_components=2)
-pca_components = pca.fit_transform(X_scaled)
-df["PC1"], df["PC2"] = pca_components[:, 0], pca_components[:, 1]
-st.write("PCA 설명 분산 비율:", pca.explained_variance_ratio_)
+# ------------------------
+# 5. 사용자 진단 시스템
+# ------------------------
+st.header("④ 내 수질은 어디쯤? (백분위 진단 + 피드백)")
+st.markdown("#### 💡 아래 항목을 입력해 수질 상태를 분석해보세요.")
 
-# 6단계: LDC 유사 위험지수 생성
-st.header("6단계. 📉 기준 초과 기반 위험지수 (LDC 유사)")
-def calc_risk(row):
-    score = 0
-    if row["Turbidity"] > 5: score += 1
-    if row["Chlorine"] < 0.2: score += 2
-    if row["Coliform"] > 0: score += 2
-    if row["Ecoli"] > 0: score += 3
-    return score
-
-df["Risk_Index"] = df.apply(calc_risk, axis=1)
-st.dataframe(df[["Sample_Date", "Turbidity", "Chlorine", "Coliform", "Ecoli", "Risk_Index"]].sort_values("Risk_Index", ascending=False).head(10))
-
-# 7단계: 위험 군집 시각화 (PCA)
-st.header("7단계. 🗺️ PCA 기반 위험 군집 시각화")
-fig_pca = px.scatter(df, x="PC1", y="PC2", color="Risk_Index",
-                     title="PCA 기반 수질 위험 군집")
-st.plotly_chart(fig_pca, use_container_width=True)
-
-# 8단계: 사용자 입력 기반 위험도 평가
-st.header("8단계. 🧪 사용자 입력 기반 수질 진단")
 turb = st.slider("탁도 (NTU)", 0.0, 10.0, 4.0)
 chl = st.slider("잔류 염소 (mg/L)", 0.0, 1.0, 0.3)
-col = st.slider("Coliform (MPN/100mL)", 0, 10, 0)
-eco = st.slider("E.coli (MPN/100mL)", 0, 10, 0)
-flu = st.slider("불소 농도 (mg/L)", 0.0, 2.0, 1.0)
+coli = st.slider("대장균 (MPN/100mL)", 0, 10, 1)
+fluor = st.slider("불소 농도 (mg/L)", 0.0, 2.0, 1.0)
 
-if st.button("📋 위험도 평가 실행"):
-    score = 0
-    if turb > 5: score += 1
-    if chl < 0.2: score += 2
-    if col > 0: score += 2
-    if eco > 0: score += 3
-    if flu > 1.5: score += 1
-    st.subheader(f"위험 점수: {score}점")
-    if score >= 6:
-        st.error("🚨 고위험 상태입니다.")
-    elif score >= 3:
-        st.warning("⚠️ 주의가 필요합니다.")
-    else:
-        st.success("✅ 안전 수준입니다.")
+def get_percentile(colname, value):
+    col = df[colname].dropna()
+    return percentileofscore(col, value, kind="mean")
 
-# 출처
-st.caption("📖 참고: 정용훈 외 (2025), 『유역모델을 이용한 섬진강댐 수질 영향 인자 분석』, 대한환경공학회지")
+with st.expander("📊 NYC 전체 분포 내 백분위 위치"):
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("탁도 백분위", f"{get_percentile('Turbidity', turb):.1f} %")
+        st.metric("염소 백분위", f"{get_percentile('Chlorine', chl):.1f} %")
+    with col2:
+        st.metric("대장균 백분위", f"{get_percentile('Coliform', coli):.1f} %")
+        st.metric("불소 백분위", f"{get_percentile('Fluoride', fluor):.1f} %")
+
+# ------------------------
+# 6. 정책 피드백 제시
+# ------------------------
+st.subheader("📋 진단 결과 및 오염원 대응 방안")
+
+issues = []
+if turb > 5:
+    issues.append("🟠 **탁도 초과**: 미생물 보호 가능성 증가 → 필터링 시스템 점검 필요")
+if chl < 0.2:
+    issues.append("🔴 **염소 부족**: 소독력 저하 우려 → 말단 염소 유지 보강 필요")
+if coli > 0:
+    issues.append("🔴 **대장균 검출**: 병원균 감염 가능성 ↑ → 재검사 및 유입경로 차단 필요")
+if fluor > 1.5:
+    issues.append("🟡 **불소 과다**: 만성노출 위험 → 주입량 조정 권고")
+
+if issues:
+    for i in issues:
+        st.warning(i)
+else:
+    st.success("✅ 모든 수질 항목이 안전 기준 내에 있습니다.")
+
+# ------------------------
+# 7. 출처 및 SDG 연계
+# ------------------------
+st.markdown("---")
+st.caption("""
+🔎 본 시스템은 WHO 수질 기준 및 SDG 6 (깨끗한 물과 위생) 목표에 따라 NYC 수돗물 데이터를 분석하여,
+도시 수질 관리의 데이터 기반 진단 체계를 구현합니다.
+""")
