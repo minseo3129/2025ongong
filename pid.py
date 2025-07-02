@@ -1,78 +1,94 @@
-# case1_pid_vs_fgs_pid.py
-
 import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
 
-# 목표 RWCL
-RWCL_target = 75.0
+# ---------------------
+# 데이터 불러오기
+# ---------------------
+df = pd.read_csv("Advanced Soybean new.csv")
+rwcl_data = df["Relative Water Content in Leaves (RWCL)"].values.astype(float)
 
-# 고정 PID 제어기 파라미터
-Kp_fixed = 0.6
-Ki_fixed = 0.2
-Kd_fixed = 0.05
+# ---------------------
+# 목표값 및 시간 설정
+# ---------------------
+target_rwcl = 750.0
+time = np.linspace(0, 80, len(rwcl_data))
 
-# FGS-PID 보정 함수 (간단화된 rule)
-def fuzzy_gain_modifiers(e, de_dt):
-    return (1 + 0.5 * np.tanh(e)), (1 + 0.3 * np.tanh(de_dt)), (1 + 0.2 * np.tanh(e * de_dt))
-
-# PID 제어기
-def pid_controller(e, e_sum, e_diff, Kp, Ki, Kd):
-    return Kp * e + Ki * e_sum + Kd * e_diff
-
-# 시스템 모델 (RWCL 응답 모델: 간단한 1차 지연 시스템 가정)
-def rwcl_system(y, t, u):
-    tau = 10.0
-    dydt = (-y + u) / tau
-    return dydt
-
-# 시뮬레이션 함수
-def run_simulation(mode="PID"):
-    t = np.linspace(0, 80, 800)
-    y = np.zeros_like(t)
-    u = np.zeros_like(t)
-    e_sum = 0.0
-    e_prev = 0.0
-    RWCL_init = 65.0
-    y[0] = RWCL_init
-
-    for i in range(1, len(t)):
-        e = RWCL_target - y[i-1]
-        de = (e - e_prev)
-        e_sum += e * (t[i] - t[i-1])
+# ---------------------
+# 고정 PID 제어기
+# ---------------------
+def fixed_pid_controller(y, target, Kp=0.015, Ki=0.001, Kd=0.005):
+    e_prev = 0
+    integral = 0
+    output = []
+    for i in range(len(y)):
+        e = target - y[i]
+        integral += e
+        derivative = e - e_prev
+        control = Kp * e + Ki * integral + Kd * derivative
+        y[i] += control
+        output.append(y[i])
         e_prev = e
+    return np.array(output)
 
-        if mode == "PID":
-            u[i] = pid_controller(e, e_sum, de, Kp_fixed, Ki_fixed, Kd_fixed)
-        elif mode == "FGS-PID":
-            Kp_fz, Ki_fz, Kd_fz = fuzzy_gain_modifiers(e, de)
-            u[i] = pid_controller(e, e_sum, de,
-                                  Kp_fixed * Kp_fz,
-                                  Ki_fixed * Ki_fz,
-                                  Kd_fixed * Kd_fz)
+# ---------------------
+# FGS-PID 제어기 (퍼지 게인 가변)
+# ---------------------
+def fgs_pid_controller(y, target, Kp=0.015, Ki=0.001, Kd=0.005):
+    e_prev = 0
+    integral = 0
+    output = []
+    for i in range(len(y)):
+        e = target - y[i]
+        de = e - e_prev
+        integral += e
 
-        dy = rwcl_system(y[i-1], t[i-1], u[i])
-        y[i] = y[i-1] + dy * (t[i] - t[i-1])
+        # 퍼지 기반 게인 조절 (단순 모델)
+        Kp_fuzzy = Kp * (1 + 0.5 * np.tanh(abs(e) / 100))
+        Ki_fuzzy = Ki * (1 + 0.3 * np.tanh(abs(integral) / 1000))
+        Kd_fuzzy = Kd * (1 + 0.4 * np.tanh(abs(de) / 100))
 
-    return t, y, u
+        control = Kp_fuzzy * e + Ki_fuzzy * integral + Kd_fuzzy * de
+        y[i] += control
+        output.append(y[i])
+        e_prev = e
+    return np.array(output)
 
+# ---------------------
+# 시뮬레이션 실행
+# ---------------------
+rwcl_initial = rwcl_data.copy()
+rwcl_pid = fixed_pid_controller(rwcl_data.copy(), target_rwcl)
+rwcl_fgs = fgs_pid_controller(rwcl_initial.copy(), target_rwcl)
+
+# ---------------------
 # Streamlit 시각화
-st.title("Case 1: 고정 PID vs FGS-PID 제어 비교 시뮬레이션")
-st.markdown("목표 잎 수분 함량 (RWCL): **75.0%**, 초기값: 65.0%")
-
-t, y_pid, u_pid = run_simulation(mode="PID")
-t, y_fgs, u_fgs = run_simulation(mode="FGS-PID")
+# ---------------------
+st.title("🌱 Case 1: 고정 PID vs FGS-PID 제어 시뮬레이션")
+st.subheader("목표 RWCL: 750.0")
 
 fig, ax = plt.subplots()
-ax.plot(t, y_pid, label="Fixed PID", linestyle="--")
-ax.plot(t, y_fgs, label="FGS-PID", linestyle="-")
-ax.axhline(RWCL_target, color='gray', linestyle=":", label="Target RWCL")
+ax.plot(time, rwcl_data, label="초기 RWCL", linestyle="--", alpha=0.4)
+ax.plot(time, rwcl_pid, label="PID", linestyle="--")
+ax.plot(time, rwcl_fgs, label="FGS-PID", linestyle="-")
+ax.axhline(y=target_rwcl, color='gray', linestyle=':', label="목표 RWCL")
 ax.set_xlabel("Time (s)")
-ax.set_ylabel("RWCL (%)")
-ax.set_title("RWCL Response: PID vs FGS-PID")
+ax.set_ylabel("RWCL")
+ax.set_title("Step Response (CASE 1)")
 ax.legend()
 st.pyplot(fig)
 
+# ---------------------
+# 성능 비교
+# ---------------------
+def compute_metrics(signal, target):
+    rise_time_idx = next((i for i, val in enumerate(signal) if val >= target), len(signal)-1)
+    overshoot = max(signal) - target
+    settling_idx = next((i for i, val in enumerate(signal[::-1]) if abs(val - target) > 5), 0)
+    settling_time = len(signal) - settling_idx
+    mean_control = np.mean(np.abs(np.diff(signal)))
+    return rise_time_idx, overshoot, settling_time, mean_control
 
+r_pid = compute_metrics(rwcl_pid, target_rwcl)
+r_fgs = compute_metrics(rwcl_fgs, target_rwcl)
