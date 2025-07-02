@@ -1,9 +1,15 @@
+pip install streamlit scikit-fuzzy pandas matplotlib
+
+
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
 
-# 데이터 불러오기
+# 데이터 로드
 @st.cache_data
 def load_data():
     df = pd.read_csv("Advanced Soybean new.csv")
@@ -11,60 +17,76 @@ def load_data():
 
 df = load_data()
 
-st.title("🌱 FGS-PID 제어 기반 콩 생육 제어 시뮬레이션")
-st.markdown("스마트팜 환경에서 생육 변수(PID 오차)를 자동 제어하는 퍼지 기반 제어 구조 시뮬레이션")
+st.title("🌿 FGS-PID 기반 스마트팜 생육 제어 시뮬레이션")
 
-# 선택 가능한 생육 변수
-target_vars = ['Number of Pods (NP)', 'Biological Weight (BW)', 'Sugars (Su)',
-               'Relative Water Content in Leaves (RWCL)', 'ChlorophyllA663',
-               'Chlorophyllb649', 'Protein Percentage (PPE)', 'Weight of 300 Seeds (W3S)',
-               'Leaf Area Index (LAI)', 'Number of Seeds per Pod (NSP)']
+# 1. 사용자 입력
+st.sidebar.header("🎯 목표 생육 조건")
+target_vars = {
+    'ChlorophyllA663': st.sidebar.slider("엽록소 A663 (≥)", 0.0, 10.0, 5.0),
+    'NP': st.sidebar.slider("꼬투리 수 (≥)", 0, 100, 40),
+    'PPE': st.sidebar.slider("단백질 비율 (%) (≥)", 0.0, 50.0, 20.0),
+    'RWCL': st.sidebar.slider("잎의 수분 함량 (%) (≥)", 0.0, 100.0, 75.0),
+    'NSP': st.sidebar.slider("생산된 종자 수 (≥)", 0.0, 4.0, 2.0),
+}
 
-# 사용자 입력
-target_var = st.selectbox("🎯 제어할 생육 변수 선택", target_vars)
-target_value = st.slider(f"📍 목표 {target_var} 값", 
-                         min_value=float(df[target_var].min()), 
-                         max_value=float(df[target_var].max()), 
-                         value=float(df[target_var].mean()))
+st.sidebar.header("⚙️ 제어 방법 선택")
+control_method = st.sidebar.selectbox("제어 방식", ["고정 PID", "FGS-PID"])
 
-st.write(f"목표: {target_var} = {target_value:.2f}")
+# 2. 간단한 오차 기반 제어 모델링
+def simulate_pid(var_name, y0, ref, method='FGS-PID', steps=50):
+    Kp, Ki, Kd = 0.6, 0.4, 0.2
+    y = [y0]
+    e_prev = ref - y0
+    integral = 0
 
-# 오차 및 오차 변화율 계산
-df["Error"] = target_value - df[target_var]
-df["dError"] = df["Error"].diff().fillna(0)
+    for t in range(steps):
+        e = ref - y[-1]
+        integral += e
+        derivative = e - e_prev
 
-# 간단한 퍼지 규칙 기반 Kp 설정
-def fuzzy_kp(error, derror):
-    if abs(error) > 1.5:
-        return 0.8
-    elif abs(error) > 0.5:
-        return 0.5
-    else:
-        return 0.2
+        if method == 'FGS-PID':
+            # 퍼지 가중치: 예시 적용
+            e_level = np.clip(e / ref, -1, 1)
+            de_level = np.clip(derivative / ref, -1, 1)
 
-df["Kp"] = df.apply(lambda row: fuzzy_kp(row["Error"], row["dError"]), axis=1)
-df["Control_Signal"] = df["Kp"] * df["Error"]
-df["Adjusted_Water_Input"] = np.clip(0.5 + df["Control_Signal"] / 10, 0, 1)
+            # 퍼지 규칙 기반 간단한 weight (실제 퍼지 시스템은 더 정교함)
+            kp_weight = 1 + 0.5 * np.sign(e_level)
+            ki_weight = 1 + 0.3 * np.sign(e_level)
+            kd_weight = 1 - 0.2 * np.sign(e_level)
 
-# 시각화
-st.subheader("📈 생육 변수 vs 제어 효과 시각화")
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(df[target_var], label="실제 생육값", color='green')
-ax.axhline(target_value, color='red', linestyle='--', label="목표값")
-ax.set_ylabel(target_var)
-ax.set_title("생육 변수 제어 시뮬레이션 결과")
+            Kp_adj = Kp * kp_weight
+            Ki_adj = Ki * ki_weight
+            Kd_adj = Kd * kd_weight
+        else:
+            Kp_adj, Ki_adj, Kd_adj = Kp, Ki, Kd
+
+        u = Kp_adj * e + Ki_adj * integral + Kd_adj * derivative
+        y_new = y[-1] + 0.05 * u  # 시스템 반응 모델 (단순화)
+        y.append(y_new)
+        e_prev = e
+
+    return y
+
+# 3. 시뮬레이션 실행 및 결과 시각화
+st.subheader(f"🧪 시뮬레이션 결과: {control_method}")
+fig, ax = plt.subplots(figsize=(10, 5))
+
+for var in target_vars:
+    ref = target_vars[var]
+    y0 = df[var].mean()
+    y_sim = simulate_pid(var, y0, ref, method=control_method)
+    ax.plot(y_sim, label=f"{var} (목표: {ref})")
+
+ax.axhline(0, color='gray', linestyle='--')
+ax.set_xlabel("시간 단계")
+ax.set_ylabel("생육 변수 값")
+ax.set_title(f"{control_method} 제어 시뮬레이션 결과")
 ax.legend()
 st.pyplot(fig)
 
-# 제어 입력 시각화
-st.subheader("💧 조정된 수분 투입량")
-fig2, ax2 = plt.subplots(figsize=(10, 3))
-ax2.plot(df["Adjusted_Water_Input"], label="Adjusted Water Input", color='blue')
-ax2.set_ylabel("Water Input (0 ~ 1)")
-ax2.set_xlabel("샘플 번호")
-ax2.set_title("퍼지 제어에 따른 급수량 조정")
-st.pyplot(fig2)
+# 4. 원본 평균 비교
+if st.checkbox("📊 생육 변수 평균 비교"):
+    avg_vals = df[list(target_vars)].mean()
+    st.write("📘 데이터셋 평균 생육값")
+    st.dataframe(avg_vals)
 
-# 결과 요약
-st.success("✅ 제어 시뮬레이션 완료")
-st.write("간단한 퍼지 규칙을 기반으로 FGS-PID 제어 시뮬레이션이 수행되었습니다.")
