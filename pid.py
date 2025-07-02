@@ -92,3 +92,11 @@ def compute_metrics(signal, target):
 
 r_pid = compute_metrics(rwcl_pid, target_rwcl)
 r_fgs = compute_metrics(rwcl_fgs, target_rwcl)
+
+st.subheader("📊 제어 성능 비교 (Case 1)")
+perf_df = pd.DataFrame({
+    "지표": ["Rise Time", "Overshoot", "Settling Time", "Mean Control Effort"],
+    "PID": [f"{r_pid[0]} s", f"{r_pid[1]:.2f}", f"{r_pid[2]} s", f"{r_pid[3]:.2f}"],
+    "FGS-PID": [f"{r_fgs[0]} s", f"{r_fgs[1]:.2f}", f"{r_fgs[2]} s", f"{r_fgs[3]:.2f}"]
+})
+st.dataframe(perf_df)
