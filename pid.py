@@ -1,17 +1,10 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
-# 1. 데이터 불러오기
-@st.cache_data
-def load_data():
-    return pd.read_csv("Advanced Soybean new.csv")
-
-df = load_data()
-
-# 2. 실험 변수 정의
-target_values = {
+# 🎯 목표값 정의
+TARGET_VALUES = {
     'ChlorophyllA663': 5.0,
     'Number of Pods (NP)': 40,
     'Protein Percentage (PPE)': 20.0,
@@ -19,86 +12,90 @@ target_values = {
     'Number of Seeds per Pod (NSP)': 2.0
 }
 
-variables = list(target_values.keys())
-
-st.title("🌱 FGS-PID 기반 스마트팜 생육 제어 시뮬레이션")
-
-# 3. 변수 선택
-selected_var = st.selectbox("제어할 생육 변수 선택", variables)
-target = target_values[selected_var]
-
-# 4. 간단한 퍼지 기반 게인 조정 함수
-def fuzzy_gain(error, d_error):
-    def fuzz(val):
-        if abs(val) < 0.5:
+# 🧪 퍼지 게인 함수 (간단한 오차 기반 조정)
+def fuzzy_gain(e, de):
+    def weight(x):
+        if abs(x) < 0.5:
             return 1.0
-        elif abs(val) < 1.5:
+        elif abs(x) < 1.5:
             return 1.2
         else:
             return 1.5
-    return fuzz(error), fuzz(error), fuzz(d_error)
+    return weight(e), weight(e), weight(de)
 
-# 5. FGS-PID 시뮬레이션 함수
-def run_fgs_pid_simulation(data, target, Kp=1.0, Ki=0.1, Kd=0.05):
-    actual = []
-    control = []
-    error_history = []
-    integral = 0
-    prev_error = 0
-    output = data.iloc[0]  # 초기 상태
+# 🚀 PID 시뮬레이션 (FGS or Fixed)
+def simulate_pid(y0, ref, method='FGS-PID', steps=30):
+    Kp, Ki, Kd = 0.6, 0.4, 0.2
+    y, u, e_list = [y0], [], []
+    integral, e_prev = 0, ref - y0
 
-    for i in range(30):  # 30회 시뮬레이션 반복
-        error = target - output
-        d_error = error - prev_error
-        integral += error
+    for _ in range(steps):
+        e = ref - y[-1]
+        integral += e
+        de = e - e_prev
 
-        # 퍼지 게인 적용
-        Kp_w, Ki_w, Kd_w = fuzzy_gain(error, d_error)
+        if method == 'FGS-PID':
+            kp_w, ki_w, kd_w = fuzzy_gain(e, de)
+        else:
+            kp_w, ki_w, kd_w = 1, 1, 1
 
-        u = (Kp*Kp_w)*error + (Ki*Ki_w)*integral + (Kd*Kd_w)*d_error
-        output += u * 0.1  # 시스템 반응
-        output = np.clip(output, 0, 100)
+        u_t = (Kp * kp_w) * e + (Ki * ki_w) * integral + (Kd * kd_w) * de
+        y_t = y[-1] + 0.05 * u_t
 
-        actual.append(output)
-        control.append(u)
-        error_history.append(error)
-        prev_error = error
+        u.append(u_t)
+        y.append(y_t)
+        e_list.append(e)
+        e_prev = e
 
-    return actual, control, error_history
+    return y, u, e_list
 
-# 6. 데이터 준비
-avg_data = df[selected_var].mean()
+# 📏 평가 지표 계산 함수
+def calculate_metrics(y, u, ref, tolerance=0.05):
+    y = np.array(y)
+    t = np.arange(len(y))
+    rise_time = next((i for i, val in enumerate(y) if val >= ref), None)
+    overshoot = np.max(y) - ref
+    settling_idx = next((i for i in range(len(y)-1, -1, -1)
+                         if abs(y[i] - ref) > ref * tolerance), 0)
+    settling_time = settling_idx + 1
+    steady_state_error = abs(y[-1] - ref)
+    mean_effort = np.mean(np.abs(u))
+    return rise_time, overshoot, settling_time, steady_state_error, mean_effort
 
-# 7. 시뮬레이션 실행
-actual, control, error = run_fgs_pid_simulation(pd.Series([avg_data]), target)
+# 📊 Streamlit UI
+st.title("🌾 FGS-PID vs 고정 PID 제어 성능 비교 (환경 외란 없음)")
 
-# 8. 시각화
-st.subheader(f"📊 {selected_var}에 대한 FGS-PID 제어 시뮬레이션 결과")
+# 🔘 변수 선택
+var = st.selectbox("분석할 생육 변수", list(TARGET_VALUES.keys()))
+ref = TARGET_VALUES[var]
 
+# 데이터 평균값으로 초기화
+df = pd.read_csv("Advanced Soybean new.csv")
+y0 = df[var].mean()
+
+# 시뮬레이션 실행
+y_fgs, u_fgs, e_fgs = simulate_pid(y0, ref, method="FGS-PID")
+y_pid, u_pid, e_pid = simulate_pid(y0, ref, method="Fixed")
+
+# 평가 지표 계산
+metrics_fgs = calculate_metrics(y_fgs, u_fgs, ref)
+metrics_pid = calculate_metrics(y_pid, u_pid, ref)
+
+# 🧾 표로 출력
+cols = ['Rise Time', 'Overshoot', 'Settling Time', 'Steady State Error', 'Mean Control Effort']
+st.subheader("📋 평가 지표 비교")
+df_metrics = pd.DataFrame([metrics_pid, metrics_fgs], columns=cols, index=["Fixed PID", "FGS-PID"])
+st.dataframe(df_metrics)
+
+# 📈 시각화
+st.subheader("📈 제어 출력 비교")
 fig, ax = plt.subplots()
-ax.plot(actual, label="실제 값", marker='o')
-ax.axhline(target, color='r', linestyle='--', label="목표값")
-ax.set_ylabel(selected_var)
-ax.set_xlabel("시간 (Iteration)")
-ax.set_title("FGS-PID 제어 시뮬레이션")
+ax.plot(y_pid, label='Fixed PID', linestyle='--', marker='x')
+ax.plot(y_fgs, label='FGS-PID', linestyle='-', marker='o')
+ax.axhline(ref, color='gray', linestyle=':', label='Target')
+ax.set_title(f"{var} 시뮬레이션 결과")
+ax.set_ylabel(var)
+ax.set_xlabel("Time Step")
 ax.legend()
 st.pyplot(fig)
-
-# 오차 그래프
-fig2, ax2 = plt.subplots()
-ax2.plot(error, color='orange', marker='x', label="오차 (e)")
-ax2.set_title("오차 변화 추이")
-ax2.set_xlabel("시간")
-ax2.set_ylabel("오차")
-ax2.legend()
-st.pyplot(fig2)
-
-# 제어 입력 시각화
-fig3, ax3 = plt.subplots()
-ax3.plot(control, color='green', label="제어 입력 (Control Effort)")
-ax3.set_title("제어 입력 추이")
-ax3.set_xlabel("시간")
-ax3.set_ylabel("수분/처리량 조절")
-ax3.legend()
-st.pyplot(fig3)
 
